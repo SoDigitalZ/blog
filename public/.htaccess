@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Si index.php est directement accédé, ne rien faire
+    RewriteRule ^index\.php$ - [L]
+
+    # Si la requête ne correspond pas à un fichier ou un répertoire existant, redirige vers index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php?p=$1 [L,QSA]
+</IfModule>
+
