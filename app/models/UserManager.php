@@ -55,15 +55,19 @@ class UserManager
     {
         // Hachage du mot de passe avant insertion dans la base de données
         $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
+
+        // Préparer la requête d'insertion
         $query = $this->db->prepare("
             INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
             VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
         ");
+
+        // Exécuter la requête en passant les paramètres
         return $query->execute([
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'email' => $data['email'],
-            'password' => $passwordHash,
+            'password' => $passwordHash,  // Utilise le mot de passe haché
             'phone' => $data['phone'],
             'role' => $data['role'],
             'is_valid' => $data['is_valid'],
@@ -82,5 +86,68 @@ class UserManager
         $query = $this->db->prepare("SELECT COUNT(*) FROM user WHERE email = :email");
         $query->execute(['email' => $email]);
         return $query->fetchColumn() > 0;  // Retourne true si l'email existe déjà, sinon false
+    }
+
+    /**
+     * Mettre à jour les informations d'un utilisateur
+     *
+     * @param int $id
+     * @param array $data
+     * @return bool
+     */
+    public function updateUser(int $id, array $data): bool
+    {
+        $query = $this->db->prepare("
+            UPDATE user 
+            SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, is_valid = :is_valid, banned = :banned 
+            WHERE id = :id
+        ");
+
+        return $query->execute([
+            'id' => $id,
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'role' => $data['role'],
+            'is_valid' => $data['is_valid'],
+            'banned' => $data['banned']
+        ]);
+    }
+
+    /**
+     * Supprimer un utilisateur de la base de données
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function deleteUser(int $id): bool
+    {
+        $query = $this->db->prepare("DELETE FROM user WHERE id = :id");
+        return $query->execute(['id' => $id]);
+    }
+
+    /**
+     * Trouver un utilisateur par son ID
+     *
+     * @param int $id
+     * @return array|false Retourne un tableau associatif contenant les informations de l'utilisateur ou false si non trouvé
+     */
+    public function findOneById(int $id)
+    {
+        $query = $this->db->prepare("SELECT * FROM user WHERE id = :id");
+        $query->execute(['id' => $id]);
+        return $query->fetch(PDO::FETCH_ASSOC);  // Retourne les données de l'utilisateur sous forme de tableau associatif
+    }
+
+    /**
+     * Récupérer tous les utilisateurs
+     *
+     * @return array|false Retourne un tableau associatif avec tous les utilisateurs ou false si erreur
+     */
+    public function findAll()
+    {
+        $query = $this->db->query("SELECT * FROM user");
+        return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 }

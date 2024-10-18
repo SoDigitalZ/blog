@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserManager;
 use App\Models\User;
+use App\Controllers\ValidatorUser;
 
 class UserController extends Controller
 {
@@ -20,13 +21,16 @@ class UserController extends Controller
 
         // Si le formulaire de connexion a été soumis
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Création d'une instance du validateur
+            $validator = new ValidatorUser();
+
             // Nettoyage des données du formulaire
-            $email = $this->sanitizeEmail($_POST['email']);
+            $email = $validator->sanitizeEmail($_POST['email']);
             $password = $_POST['password'];
 
             // Validation du formulaire
-            if ($this->validateLoginForm($email, $password)) {
-                // Création d'une instance de UserManager qui utilise la connexion unique via Db
+            if ($validator->validateLoginForm($email, $password)) {
+                // Création d'une instance de UserManager pour interagir avec la base de données
                 $userManager = new UserManager();
 
                 // Recherche de l'utilisateur par email
@@ -38,7 +42,7 @@ class UserController extends Controller
                     $user->hydrate($userFind);
 
                     // Vérification du mot de passe
-                    if ($this->verifyPassword($password, $user->getPassword())) {
+                    if ($validator->verifyPassword($password, $user->getPassword())) {
                         // Création de la session utilisateur
                         $userManager->setSession($user);
                         header('Location: /admin');
@@ -56,6 +60,49 @@ class UserController extends Controller
 
         // Affichage de la vue de connexion avec un éventuel message d'erreur
         $this->render('login/index', ['error' => $error ?? null]);
+    }
+
+    /**
+     * Fonction d'inscription
+     */
+    public function register()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Récupérer les données soumises via le formulaire
+            $data = [
+                'first_name' => $_POST['first_name'],
+                'last_name' => $_POST['last_name'],
+                'email' => $_POST['email'],
+                'password' => $_POST['password'],
+                'phone' => $_POST['phone'],
+                'role' => 2,  // Rôle utilisateur par défaut
+                'is_valid' => 1,  // Compte validé par défaut
+                'banned' => 0  // Non banni par défaut
+            ];
+
+            // Instancier le validateur utilisateur
+            $validator = new ValidatorUser();
+
+            // Valider les données d'inscription
+            $errors = $validator->validateRegistration($data);
+
+            if (empty($errors)) {
+                // Si tout est valide, enregistrer l'utilisateur via UserManager
+                $userManager = new UserManager();
+                $userManager->registerUser($data);
+
+                // Redirection ou message de succès
+                echo "Utilisateur enregistré avec succès.";
+            } else {
+                // Affichage des erreurs
+                foreach ($errors as $error) {
+                    echo "<p style='color:red;'>$error</p>";
+                }
+            }
+        } else {
+            // Afficher le formulaire d'inscription
+            $this->render('user/register');
+        }
     }
 
     /**
@@ -78,46 +125,11 @@ class UserController extends Controller
     }
 
     /**
-     * Crée une session utilisateur
-     */
-    private function createUserSession(User $user)
-    {
-        $_SESSION['user'] = [
-            'id' => $user->getId(),
-            'email' => $user->getEmail()
-        ];
-    }
-
-    /**
      * Détruit la session utilisateur
      */
     private function destroyUserSession()
     {
         unset($_SESSION['user']);
         session_destroy();
-    }
-
-    /**
-     * Nettoie l'email
-     */
-    private function sanitizeEmail(string $email): string
-    {
-        return filter_var($email, FILTER_SANITIZE_EMAIL);
-    }
-
-    /**
-     * Valide le formulaire de connexion
-     */
-    private function validateLoginForm(string $email, string $password): bool
-    {
-        return !empty($email) && !empty($password);
-    }
-
-    /**
-     * Vérifie si le mot de passe est correct
-     */
-    private function verifyPassword(string $inputPassword, string $hashedPassword): bool
-    {
-        return password_verify($inputPassword, $hashedPassword);
     }
 }

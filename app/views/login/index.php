@@ -1,3 +1,5 @@
+<!-- views/user/login.php -->
+
 <!-- Intégration de Bootstrap pour le formulaire de connexion -->
 <div class="container my-5">
     <article class="login-form">
@@ -33,5 +35,10 @@
                 <button type="submit" class="btn btn-primary w-100">Valider</button>
             </div>
         </form>
+
+        <!-- Lien vers l'inscription -->
+        <div class="text-center mt-3">
+            <p>Pas encore inscrit ? <a href="/user/register">Créez un compte</a></p>
+        </div>
     </article>
 </div>
