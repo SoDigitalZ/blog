@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserManager;
 use App\Models\User;
-use App\Controllers\ValidatorUser;
+use App\Controllers\ValidatorRegister;
 
 class UserController extends Controller
 {
@@ -69,27 +69,26 @@ class UserController extends Controller
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Récupérer les données soumises via le formulaire
+            // Rajouter $_Post invisible sur la page pour checker si bon form et pas autre
+            // créer objet user et utilliser setter pour enregistrer les info dans l'objet
             $data = [
                 'first_name' => $_POST['first_name'],
                 'last_name' => $_POST['last_name'],
                 'email' => $_POST['email'],
                 'password' => $_POST['password'],
-                'phone' => $_POST['phone'],
-                'role' => 2,  // Rôle utilisateur par défaut
-                'is_valid' => 1,  // Compte validé par défaut
-                'banned' => 0  // Non banni par défaut
+                'phone' => $_POST['phone']
             ];
 
-            // Instancier le validateur utilisateur
-            $validator = new ValidatorUser();
+            // Instancier le validateur utilisateur -- rajouter objet
+            $validator = new ValidatorUser($objet);
 
-            // Valider les données d'inscription
-            $errors = $validator->validateRegistration($data);
+            // Valider les données d'inscription -- virer $data car $objet créé sur $validator
+            $validateForm = $validator->validateRegistration();
 
-            if (empty($errors)) {
-                // Si tout est valide, enregistrer l'utilisateur via UserManager
-                $userManager = new UserManager();
-                $userManager->registerUser($data);
+            if (empty($validateForm)) {
+                // Si tout est valide, enregistrer l'utilisateur via UserManager ne pas oublier $objet
+                $userManager = new UserManager($objet);
+                $userManager->registerUser($objet);
 
                 // Redirection ou message de succès
                 echo "Utilisateur enregistré avec succès.";

@@ -48,18 +48,6 @@ class Validator
     }
 
     /**
-     * Valider le formulaire de connexion
-     * Vérifie que les champs email et mot de passe ne sont pas vides.
-     * @param string $email
-     * @param string $password
-     * @return bool
-     */
-    public function validateLoginForm(string $email, string $password): bool
-    {
-        return !empty($email) && !empty($password);
-    }
-
-    /**
      * Vérifier si le mot de passe fourni correspond au mot de passe haché
      * @param string $inputPassword Le mot de passe saisi par l'utilisateur
      * @param string $hashedPassword Le mot de passe haché stocké en base de données

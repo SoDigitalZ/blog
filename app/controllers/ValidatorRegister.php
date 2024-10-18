@@ -14,6 +14,18 @@ class ValidatorUser extends Validator
     }
 
     /**
+     * Valider le formulaire de connexion
+     * Vérifie que les champs email et mot de passe ne sont pas vides.
+     * @param string $email
+     * @param string $password
+     * @return bool
+     */
+    public function validateLoginForm(string $email, string $password): bool
+    {
+        return !empty($email) && !empty($password);
+    }
+
+    /**
      * Vérifier si un email est déjà pris par un utilisateur
      * @param string $email
      * @return bool
@@ -31,7 +43,7 @@ class ValidatorUser extends Validator
     public function validateRegistration(array $data): array
     {
         $errors = [];
-
+        //créer tableau ou on peut récupérer la donnée précisement
         if (!$this->validateEmail($data['email'])) {
             $errors[] = "L'email n'est pas valide.";
         } elseif ($this->isEmailTaken($data['email'])) {
@@ -51,5 +63,6 @@ class ValidatorUser extends Validator
         }
 
         return $errors;
+        // a faire uniquement si erreur renvoyé -- empty
     }
 }
