@@ -23,6 +23,9 @@
 
     <!-- Formulaire d'inscription -->
     <form action="/user/register" method="POST" class="w-50 mx-auto">
+        <!-- Champ caché pour le form_token -->
+        <input type="hidden" name="form_token" value="<?= htmlspecialchars($form_token ?? '') ?>">
+
         <!-- Champ Prénom -->
         <div class="mb-3">
             <label for="first_name" class="form-label">Prénom</label>
@@ -47,7 +50,13 @@
             <input type="password" id="password" name="password" class="form-control" placeholder="Entrez votre mot de passe" required>
         </div>
 
-        <!-- Optionnel : Champ Téléphone -->
+        <!-- Champ Confirmation du mot de passe -->
+        <div class="mb-3">
+            <label for="confirmedPassword" class="form-label">Confirmer le mot de passe</label>
+            <input type="password" id="confirmedPassword" name="confirmedPassword" class="form-control" placeholder="Confirmez votre mot de passe" required>
+        </div>
+
+        <!-- Champ Téléphone (optionnel) -->
         <div class="mb-3">
             <label for="phone" class="form-label">Téléphone</label>
             <input type="text" id="phone" name="phone" class="form-control" placeholder="Entrez votre numéro de téléphone">

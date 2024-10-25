@@ -57,4 +57,15 @@ class Validator
     {
         return password_verify($inputPassword, $hashedPassword);
     }
+
+    /**
+     * Valider un numéro de téléphone (format basique)
+     * @param string $phone
+     * @return bool
+     */
+    public function validatePhone(string $phone): bool
+    {
+        // Exemple de validation pour un format international ou local simple
+        return preg_match('/^\+?[0-9]{10,15}$/', $phone);
+    }
 }

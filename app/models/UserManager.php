@@ -48,32 +48,33 @@ class UserManager
     /**
      * Enregistrer un nouvel utilisateur dans la base de données
      *
-     * @param array $data
+     * @param User $user
      * @return bool
      */
-    public function registerUser(array $data): bool
+    public function registerUser(User $user): bool
     {
-        // Hachage du mot de passe avant insertion dans la base de données
-        $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
+        // Hachage du mot de passe
+        $passwordHash = password_hash($user->getPassword(), PASSWORD_BCRYPT);
 
         // Préparer la requête d'insertion
         $query = $this->db->prepare("
-            INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
-            VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
-        ");
+        INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
+        VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
+    ");
 
         // Exécuter la requête en passant les paramètres
         return $query->execute([
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'email' => $data['email'],
-            'password' => $passwordHash,  // Utilise le mot de passe haché
-            'phone' => $data['phone'],
-            'role' => $data['role'],
-            'is_valid' => $data['is_valid'],
-            'banned' => $data['banned']
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+            'email' => $user->getEmail(),
+            'password' => $passwordHash,
+            'phone' => $user->getPhone(),
+            'role' => $user->getRole(),
+            'is_valid' => $user->getIsValid(),
+            'banned' => $user->getBanned()
         ]);
     }
+
 
     /**
      * Vérifier si un utilisateur existe déjà par email

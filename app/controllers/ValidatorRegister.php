@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserManager;
 
-class ValidatorUser extends Validator
+class ValidatorRegister extends Validator
 {
     protected $userManager;
 
@@ -43,26 +43,34 @@ class ValidatorUser extends Validator
     public function validateRegistration(array $data): array
     {
         $errors = [];
-        //créer tableau ou on peut récupérer la donnée précisement
+
+        // Valider l'email
         if (!$this->validateEmail($data['email'])) {
             $errors[] = "L'email n'est pas valide.";
         } elseif ($this->isEmailTaken($data['email'])) {
             $errors[] = "L'email est déjà utilisé.";
         }
 
+        // Valider le prénom
         if (!$this->validateString($data['first_name'])) {
             $errors[] = "Le prénom n'est pas valide.";
         }
 
+        // Valider le nom
         if (!$this->validateString($data['last_name'])) {
             $errors[] = "Le nom n'est pas valide.";
         }
 
+        // Valider le mot de passe
         if (!$this->validatePassword($data['password'])) {
             $errors[] = "Le mot de passe doit comporter au moins 8 caractères.";
         }
 
+        // Vérifier la correspondance entre password et confirmedPassword
+        if ($data['password'] !== $data['confirmedPassword']) {
+            $errors[] = "Les mots de passe ne correspondent pas.";
+        }
+
         return $errors;
-        // a faire uniquement si erreur renvoyé -- empty
     }
 }

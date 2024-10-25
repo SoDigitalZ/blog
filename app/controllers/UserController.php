@@ -13,37 +13,25 @@ class UserController extends Controller
      */
     public function index()
     {
-        // Si l'utilisateur est déjà connecté, redirection vers la page admin
         if ($this->isUserLoggedIn()) {
             header('Location: /admin');
             exit;
         }
 
-        // Si le formulaire de connexion a été soumis
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Création d'une instance du validateur
-            $validator = new ValidatorUser();
-
-            // Nettoyage des données du formulaire
+            $validator = new ValidatorRegister();
             $email = $validator->sanitizeEmail($_POST['email']);
             $password = $_POST['password'];
 
-            // Validation du formulaire
             if ($validator->validateLoginForm($email, $password)) {
-                // Création d'une instance de UserManager pour interagir avec la base de données
                 $userManager = new UserManager();
-
-                // Recherche de l'utilisateur par email
                 $userFind = $userManager->findOneByEmail($email);
 
                 if ($userFind) {
-                    // Hydratation de l'objet User avec les données trouvées
                     $user = new User();
                     $user->hydrate($userFind);
 
-                    // Vérification du mot de passe
                     if ($validator->verifyPassword($password, $user->getPassword())) {
-                        // Création de la session utilisateur
                         $userManager->setSession($user);
                         header('Location: /admin');
                         exit;
@@ -58,7 +46,6 @@ class UserController extends Controller
             }
         }
 
-        // Affichage de la vue de connexion avec un éventuel message d'erreur
         $this->render('login/index', ['error' => $error ?? null]);
     }
 
@@ -68,39 +55,58 @@ class UserController extends Controller
     public function register()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Récupérer les données soumises via le formulaire
-            // Rajouter $_Post invisible sur la page pour checker si bon form et pas autre
-            // créer objet user et utilliser setter pour enregistrer les info dans l'objet
-            $data = [
-                'first_name' => $_POST['first_name'],
-                'last_name' => $_POST['last_name'],
-                'email' => $_POST['email'],
-                'password' => $_POST['password'],
-                'phone' => $_POST['phone']
+            // Vérification du token CSRF
+            if (!isset($_POST['form_token']) || $_POST['form_token'] !== $_SESSION['form_token']) {
+                $errors[] = "Soumission de formulaire non autorisée.";
+                $this->render('user/register', ['errors' => $errors]);
+                return;
+            }
+
+            // Supprimer le token après vérification pour empêcher une réutilisation
+            unset($_SESSION['form_token']);
+
+            // Création de l'objet User et hydratation
+            $user = new User();
+            $user->setFirstName($_POST['first_name']);
+            $user->setLastName($_POST['last_name']);
+            $user->setEmail($_POST['email']);
+            $user->setPassword($_POST['password']);
+            $user->setPhone($_POST['phone']);
+            $confirmedPassword = $_POST['confirmedPassword'];
+
+            // Préparer les données pour la validation
+            $userData = [
+                'first_name' => $user->getFirstName(),
+                'last_name' => $user->getLastName(),
+                'email' => $user->getEmail(),
+                'password' => $user->getPassword(),
+                'phone' => $user->getPhone(),
+                'confirmedPassword' => $confirmedPassword
             ];
 
-            // Instancier le validateur utilisateur -- rajouter objet
-            $validator = new ValidatorUser($objet);
+            // Valider les données avec ValidatorRegister
+            $validator = new ValidatorRegister();
+            $errors = $validator->validateRegistration($userData);
 
-            // Valider les données d'inscription -- virer $data car $objet créé sur $validator
-            $validateForm = $validator->validateRegistration();
-
-            if (empty($validateForm)) {
-                // Si tout est valide, enregistrer l'utilisateur via UserManager ne pas oublier $objet
-                $userManager = new UserManager($objet);
-                $userManager->registerUser($objet);
-
-                // Redirection ou message de succès
-                echo "Utilisateur enregistré avec succès.";
-            } else {
-                // Affichage des erreurs
-                foreach ($errors as $error) {
-                    echo "<p style='color:red;'>$error</p>";
+            if (empty($errors)) {
+                $userManager = new UserManager();
+                if ($userManager->registerUser($user)) {
+                    $success = "Utilisateur enregistré avec succès.";
+                    $this->render('user/register', ['success' => $success]);
+                } else {
+                    $errors[] = "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.";
+                    $this->render('user/register', ['errors' => $errors]);
                 }
+            } else {
+                $this->render('user/register', ['errors' => $errors]);
             }
         } else {
-            // Afficher le formulaire d'inscription
-            $this->render('user/register');
+            // Générer et stocker le token CSRF dans la session
+            $form_token = bin2hex(random_bytes(32));
+            $_SESSION['form_token'] = $form_token;
+
+            // Afficher le formulaire d'inscription avec le token
+            $this->render('user/register', ['form_token' => $form_token]);
         }
     }
 
@@ -109,7 +115,6 @@ class UserController extends Controller
      */
     public function logout()
     {
-        // Suppression de la session utilisateur
         $this->destroyUserSession();
         header('Location: /');
         exit;
