@@ -87,7 +87,7 @@ class UserController extends Controller
             // Valider les données avec ValidatorRegister
             $validator = new ValidatorRegister();
             $errors = $validator->validateRegistration($userData);
-
+            //corriger render pour n'en avoir que 2, success à la fin. Voir else 103 avec post top car token non remplis 1er rendu
             if (empty($errors)) {
                 $userManager = new UserManager();
                 if ($userManager->registerUser($user)) {

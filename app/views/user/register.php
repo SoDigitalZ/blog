@@ -22,38 +22,38 @@
     <?php endif; ?>
 
     <!-- Formulaire d'inscription -->
-    <form action="/user/register" method="POST" class="w-50 mx-auto">
+    <form action="/user/register" method="POST" class="w-50 mx-auto" novalidate>
         <!-- Champ caché pour le form_token -->
         <input type="hidden" name="form_token" value="<?= htmlspecialchars($form_token ?? '') ?>">
 
         <!-- Champ Prénom -->
         <div class="mb-3">
             <label for="first_name" class="form-label">Prénom</label>
-            <input type="text" id="first_name" name="first_name" class="form-control" placeholder="Entrez votre prénom" required>
+            <input type="text" id="first_name" name="first_name" class="form-control" placeholder="Entrez votre prénom">
         </div>
 
         <!-- Champ Nom -->
         <div class="mb-3">
             <label for="last_name" class="form-label">Nom</label>
-            <input type="text" id="last_name" name="last_name" class="form-control" placeholder="Entrez votre nom" required>
+            <input type="text" id="last_name" name="last_name" class="form-control" placeholder="Entrez votre nom">
         </div>
 
         <!-- Champ E-mail -->
         <div class="mb-3">
             <label for="email" class="form-label">E-mail</label>
-            <input type="email" id="email" name="email" class="form-control" placeholder="Entrez votre e-mail" required>
+            <input type="email" id="email" name="email" class="form-control" placeholder="Entrez votre e-mail">
         </div>
 
         <!-- Champ Mot de passe -->
         <div class="mb-3">
             <label for="password" class="form-label">Mot de passe</label>
-            <input type="password" id="password" name="password" class="form-control" placeholder="Entrez votre mot de passe" required>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Entrez votre mot de passe">
         </div>
 
         <!-- Champ Confirmation du mot de passe -->
         <div class="mb-3">
             <label for="confirmedPassword" class="form-label">Confirmer le mot de passe</label>
-            <input type="password" id="confirmedPassword" name="confirmedPassword" class="form-control" placeholder="Confirmez votre mot de passe" required>
+            <input type="password" id="confirmedPassword" name="confirmedPassword" class="form-control" placeholder="Confirmez votre mot de passe">
         </div>
 
         <!-- Champ Téléphone (optionnel) -->
