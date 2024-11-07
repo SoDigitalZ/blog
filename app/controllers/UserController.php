@@ -55,60 +55,68 @@ class UserController extends Controller
     public function register()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $errors = [];
+
             // Vérification du token CSRF
             if (!isset($_POST['form_token']) || $_POST['form_token'] !== $_SESSION['form_token']) {
                 $errors[] = "Soumission de formulaire non autorisée.";
-                $this->render('user/register', ['errors' => $errors]);
-                return;
             }
 
             // Supprimer le token après vérification pour empêcher une réutilisation
             unset($_SESSION['form_token']);
 
-            // Création de l'objet User et hydratation
-            $user = new User();
-            $user->setFirstName($_POST['first_name']);
-            $user->setLastName($_POST['last_name']);
-            $user->setEmail($_POST['email']);
-            $user->setPassword($_POST['password']);
-            $user->setPhone($_POST['phone']);
-            $confirmedPassword = $_POST['confirmedPassword'];
-
-            // Préparer les données pour la validation
-            $userData = [
-                'first_name' => $user->getFirstName(),
-                'last_name' => $user->getLastName(),
-                'email' => $user->getEmail(),
-                'password' => $user->getPassword(),
-                'phone' => $user->getPhone(),
-                'confirmedPassword' => $confirmedPassword
+            // Récupérer les données du formulaire et les stocker dans un tableau
+            $formData = [
+                'first_name' => $_POST['first_name'] ?? '',
+                'last_name' => $_POST['last_name'] ?? '',
+                'email' => $_POST['email'] ?? '',
+                'password' => $_POST['password'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'confirmedPassword' => $_POST['confirmedPassword'] ?? ''
             ];
 
-            // Valider les données avec ValidatorRegister
+            // Créer et valider les données utilisateur
+            $user = new User();
+            $user->setFirstName($formData['first_name']);
+            $user->setLastName($formData['last_name']);
+            $user->setEmail($formData['email']);
+            $user->setPassword($formData['password']);
+            $user->setPhone($formData['phone']);
+
+            // Validation avec ValidatorRegister
             $validator = new ValidatorRegister();
-            $errors = $validator->validateRegistration($userData);
-            //corriger render pour n'en avoir que 2, success à la fin. Voir else 103 avec post top car token non remplis 1er rendu
+            $errors = array_merge($errors, $validator->validateRegistration($formData));
+
+            // Enregistrer l'utilisateur si pas d'erreurs
             if (empty($errors)) {
                 $userManager = new UserManager();
                 if ($userManager->registerUser($user)) {
                     $success = "Utilisateur enregistré avec succès.";
                     $this->render('user/register', ['success' => $success]);
+                    return;
                 } else {
                     $errors[] = "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.";
-                    $this->render('user/register', ['errors' => $errors]);
                 }
-            } else {
-                $this->render('user/register', ['errors' => $errors]);
             }
-        } else {
-            // Générer et stocker le token CSRF dans la session
+
+            // Générer un nouveau token pour la prochaine soumission
             $form_token = bin2hex(random_bytes(32));
             $_SESSION['form_token'] = $form_token;
 
-            // Afficher le formulaire d'inscription avec le token
+            // En cas d'erreur, retourner les données du formulaire et les erreurs
+            $this->render('user/register', [
+                'errors' => $errors,
+                'formData' => $formData,
+                'form_token' => $form_token
+            ]);
+        } else {
+            // Première demande (GET) pour afficher le formulaire avec le token
+            $form_token = bin2hex(random_bytes(32));
+            $_SESSION['form_token'] = $form_token;
             $this->render('user/register', ['form_token' => $form_token]);
         }
     }
+
 
     /**
      * Fonction de déconnexion

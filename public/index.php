@@ -1,5 +1,8 @@
 <?php
 
+// Démarrage de la session pour permettre l'utilisation de $_SESSION partout
+session_start();
+
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
 
