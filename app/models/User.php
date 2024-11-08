@@ -10,9 +10,20 @@ class User
     protected $email;
     protected $password;
     protected $phone;
-    protected $role;
-    protected $is_valid;
-    protected $banned;
+    protected $role = 0;
+    protected $is_valid = false;
+    protected $banned = false;
+
+    public function __construct(array $formData) //else null à voir pour eviter void sur objet VIDE
+    {
+        //                $user = (new User())
+        //$this->setFirstName($formData['first_name'])
+        //this setLastName($formData['last_name'])
+        //->setEmail($formData['email'])
+        // ->setPassword(password_hash($formData['password'], PASSWORD_BCRYPT))
+        //->setPhone($formData['phone']);
+    }
+
 
     /**
      * Hydratation de l'objet utilisateur à partir d'un tableau de données
@@ -28,7 +39,7 @@ class User
         }
     }
 
-    // Getters (méthodes pour récupérer les valeurs des propriétés)
+    // Getters
 
     public function getId(): int
     {
@@ -75,50 +86,59 @@ class User
         return $this->banned;
     }
 
-    // Setters (méthodes pour définir les valeurs des propriétés)
+    // Setters avec retour de $this pour permettre le chaînage
 
-    public function setId(int $id)
+    public function setId(int $id): self
     {
         $this->id = $id;
+        return $this;
     }
 
-    public function setFirstName(string $first_name)
+    public function setFirstName(string $first_name): self
     {
         $this->first_name = $first_name;
+        return $this;
     }
 
-    public function setLastName(string $last_name)
+    public function setLastName(string $last_name): self
     {
         $this->last_name = $last_name;
+        return $this;
     }
 
-    public function setEmail(string $email)
+    public function setEmail(string $email): self
     {
         $this->email = $email;
+        return $this;
     }
 
-    public function setPassword(string $password)
+    public function setPassword(string $password): self
     {
         $this->password = $password;
+        return $this;
     }
 
-    public function setPhone(string $phone)
+    public function setPhone(string $phone): self
     {
         $this->phone = $phone;
+        return $this;
     }
 
-    public function setRole(int $role)
+    public function setRole(int $role): self
     {
         $this->role = $role;
+        return $this;
     }
 
-    public function setIsValid(bool $is_valid)
+    public function setIsValid(bool $is_valid): self
     {
         $this->is_valid = $is_valid;
+        return $this;
     }
 
-    public function setBanned(bool $banned)
+    public function setBanned(bool $banned): self
     {
         $this->banned = $banned;
+        return $this;
     }
 }

@@ -71,6 +71,11 @@ class ValidatorRegister extends Validator
             $errors[] = "Les mots de passe ne correspondent pas.";
         }
 
+        // Valider le numéro de téléphone
+        if (!$this->validatePhone($data['phone'])) {
+            $errors[] = "Le numéro de téléphone doit contenir uniquement des chiffres et comporter entre 10 et 15 caractères.";
+        }
+
         return $errors;
     }
 }

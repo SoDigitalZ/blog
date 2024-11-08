@@ -66,6 +66,6 @@ class Validator
     public function validatePhone(string $phone): bool
     {
         // Exemple de validation pour un format international ou local simple
-        return preg_match('/^\+?[0-9]{10,15}$/', $phone);
+        return preg_match('/^\+?[0-9]{10,15}$/', $phone); // 10 à 15 chiffres
     }
 }

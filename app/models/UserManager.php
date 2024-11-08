@@ -58,9 +58,9 @@ class UserManager
 
         // Préparer la requête d'insertion
         $query = $this->db->prepare("
-        INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
-        VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
-    ");
+            INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
+            VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
+        ");
 
         // Exécuter la requête en passant les paramètres
         return $query->execute([
@@ -69,9 +69,9 @@ class UserManager
             'email' => $user->getEmail(),
             'password' => $passwordHash,
             'phone' => $user->getPhone(),
-            'role' => $user->getRole(),
-            'is_valid' => $user->getIsValid(),
-            'banned' => $user->getBanned()
+            'role' => (int) $user->getRole(),
+            'is_valid' => (int) $user->getIsValid(), // Force à un entier (0 ou 1)
+            'banned' => (int) $user->getBanned()     // Force à un entier (0 ou 1)
         ]);
     }
 
@@ -99,10 +99,10 @@ class UserManager
     public function updateUser(int $id, array $data): bool
     {
         $query = $this->db->prepare("
-            UPDATE user 
-            SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, is_valid = :is_valid, banned = :banned 
-            WHERE id = :id
-        ");
+                UPDATE user 
+                SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, is_valid = :is_valid, banned = :banned 
+                WHERE id = :id
+            ");
 
         return $query->execute([
             'id' => $id,

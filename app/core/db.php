@@ -21,7 +21,7 @@ class Db
             $dsn = 'mysql:host=' . self::DBHOST . ';dbname=' . self::DBNAME;
             self::$instance = new PDO($dsn, self::DBUSER, self::DBPASS);
             self::$instance->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+            self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ); //FETCH_OBJ EN FETCH_CLASS -> corriger avec class dynamique (user,..)
         } catch (PDOException $e) {
             die('Erreur : ' . $e->getMessage());
         }
