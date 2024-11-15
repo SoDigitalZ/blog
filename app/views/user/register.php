@@ -22,7 +22,7 @@
     <?php endif; ?>
 
     <!-- Formulaire d'inscription -->
-    <form action="/user/register" method="POST" class="w-50 mx-auto">
+    <form action="/user/register" method="POST" class="w-50 mx-auto" novalidate>
         <!-- Champ caché pour le form_token -->
         <input type="hidden" name="form_token" value="<?= htmlspecialchars($form_token ?? '') ?>">
 

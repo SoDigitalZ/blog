@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\User;
 use App\Models\UserManager;
 
 class ValidatorRegister extends Validator
@@ -37,38 +38,43 @@ class ValidatorRegister extends Validator
 
     /**
      * Valider les données d'inscription
-     * @param array $data
+     * @param User $data
      * @return array
      */
-    public function validateRegistration(array $data): array
+    public function validateRegistration(User $data): array
     {
         $errors = [];
 
         // Valider l'email
-        if (!$this->validateEmail($data['email'])) {
+        if (!$this->validateEmail($data->getEmail())) {
             $errors[] = "L'email n'est pas valide.";
-        } elseif ($this->isEmailTaken($data['email'])) {
+        } elseif ($this->isEmailTaken($data->getEmail())) {
             $errors[] = "L'email est déjà utilisé.";
         }
 
         // Valider le prénom
-        if (!$this->validateString($data['first_name'])) {
+        if (!$this->validateString($data->getFirstName())) {
             $errors[] = "Le prénom n'est pas valide.";
         }
 
         // Valider le nom
-        if (!$this->validateString($data['last_name'])) {
+        if (!$this->validateString($data->getLastName())) {
             $errors[] = "Le nom n'est pas valide.";
         }
 
         // Valider le mot de passe
-        if (!$this->validatePassword($data['password'])) {
+        if (!$this->validatePassword($data->getPassword())) {
             $errors[] = "Le mot de passe doit comporter au moins 8 caractères.";
         }
 
         // Vérifier la correspondance entre password et confirmedPassword
-        if ($data['password'] !== $data['confirmedPassword']) {
+        if ($data->getPassword() !== $data->getConfirmedPassword()) {
             $errors[] = "Les mots de passe ne correspondent pas.";
+        }
+
+        // Valider le numéro de téléphone
+        if (!$this->validatePhone($data->getPhone())) {
+            $errors[] = "Le numéro de téléphone doit contenir uniquement des chiffres, avec 10 à 15 caractères.";
         }
 
         return $errors;

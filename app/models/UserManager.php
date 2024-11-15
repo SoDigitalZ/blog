@@ -70,8 +70,8 @@ class UserManager
             'password' => $passwordHash,
             'phone' => $user->getPhone(),
             'role' => $user->getRole(),
-            'is_valid' => $user->getIsValid(),
-            'banned' => $user->getBanned()
+            'is_valid' => (int) $user->getIsValid(), // Convertit en entier
+            'banned' => (int) $user->getBanned()     // Convertit en entier
         ]);
     }
 

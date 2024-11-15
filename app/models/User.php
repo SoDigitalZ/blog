@@ -9,10 +9,11 @@ class User
     protected $last_name;
     protected $email;
     protected $password;
+    protected $confirmedPassword;
     protected $phone;
-    protected $role;
-    protected $is_valid;
-    protected $banned;
+    protected $role = 0;        // Défini par défaut pour éviter null
+    protected $is_valid = false; // Défini par défaut
+    protected $banned = false;   // Défini par défaut
 
     /**
      * Hydratation de l'objet utilisateur à partir d'un tableau de données
@@ -53,6 +54,11 @@ class User
     public function getPassword(): string
     {
         return $this->password;
+    }
+
+    public function getConfirmedPassword(): string
+    {
+        return $this->confirmedPassword;
     }
 
     public function getPhone(): string
@@ -100,6 +106,11 @@ class User
     public function setPassword(string $password)
     {
         $this->password = $password;
+    }
+
+    public function setConfirmedPassword(string $confirmedPassword)
+    {
+        $this->confirmedPassword = $confirmedPassword;
     }
 
     public function setPhone(string $phone)

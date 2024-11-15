@@ -1,5 +1,7 @@
 <?php
 
+session_start(); // Démarre la session pour accéder à $_SESSION
+
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
 
