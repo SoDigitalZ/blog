@@ -29,7 +29,7 @@ class User
         }
     }
 
-    // Getters (méthodes pour récupérer les valeurs des propriétés)
+    // Getters
 
     public function getId(): int
     {
@@ -81,29 +81,33 @@ class User
         return $this->banned;
     }
 
-    // Setters (méthodes pour définir les valeurs des propriétés)
+    // Setters avec retour de $this pour permettre le chaînage
 
-    public function setId(int $id)
+    public function setId(int $id): self
     {
         $this->id = $id;
+        return $this;
     }
 
-    public function setFirstName(string $first_name)
+    public function setFirstName(string $first_name): self
     {
         $this->first_name = $first_name;
+        return $this;
     }
 
-    public function setLastName(string $last_name)
+    public function setLastName(string $last_name): self
     {
         $this->last_name = $last_name;
+        return $this;
     }
 
-    public function setEmail(string $email)
+    public function setEmail(string $email): self
     {
         $this->email = $email;
+        return $this;
     }
 
-    public function setPassword(string $password)
+    public function setPassword(string $password): self
     {
         $this->password = $password;
     }
@@ -113,23 +117,27 @@ class User
         $this->confirmedPassword = $confirmedPassword;
     }
 
-    public function setPhone(string $phone)
+    public function setPhone(string $phone): self
     {
         $this->phone = $phone;
+        return $this;
     }
 
-    public function setRole(int $role)
+    public function setRole(int $role): self
     {
         $this->role = $role;
+        return $this;
     }
 
-    public function setIsValid(bool $is_valid)
+    public function setIsValid(bool $is_valid): self
     {
         $this->is_valid = $is_valid;
+        return $this;
     }
 
-    public function setBanned(bool $banned)
+    public function setBanned(bool $banned): self
     {
         $this->banned = $banned;
+        return $this;
     }
 }

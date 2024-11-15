@@ -29,19 +29,22 @@
         <!-- Champ Prénom -->
         <div class="mb-3">
             <label for="first_name" class="form-label">Prénom</label>
-            <input type="text" id="first_name" name="first_name" class="form-control" placeholder="Entrez votre prénom" required>
+            <input type="text" id="first_name" name="first_name" class="form-control" placeholder="Entrez votre prénom"
+                value="<?= htmlspecialchars($formData['first_name'] ?? '') ?>" required>
         </div>
 
         <!-- Champ Nom -->
         <div class="mb-3">
             <label for="last_name" class="form-label">Nom</label>
-            <input type="text" id="last_name" name="last_name" class="form-control" placeholder="Entrez votre nom" required>
+            <input type="text" id="last_name" name="last_name" class="form-control" placeholder="Entrez votre nom"
+                value="<?= htmlspecialchars($formData['last_name'] ?? '') ?>" required>
         </div>
 
         <!-- Champ E-mail -->
         <div class="mb-3">
             <label for="email" class="form-label">E-mail</label>
-            <input type="email" id="email" name="email" class="form-control" placeholder="Entrez votre e-mail" required>
+            <input type="email" id="email" name="email" class="form-control" placeholder="Entrez votre e-mail"
+                value="<?= htmlspecialchars($formData['email'] ?? '') ?>" required>
         </div>
 
         <!-- Champ Mot de passe -->
@@ -59,7 +62,8 @@
         <!-- Champ Téléphone (optionnel) -->
         <div class="mb-3">
             <label for="phone" class="form-label">Téléphone</label>
-            <input type="text" id="phone" name="phone" class="form-control" placeholder="Entrez votre numéro de téléphone">
+            <input type="text" id="phone" name="phone" class="form-control" placeholder="Entrez votre numéro de téléphone"
+                value="<?= htmlspecialchars($formData['phone'] ?? '') ?>">
         </div>
 
         <!-- Bouton de soumission -->

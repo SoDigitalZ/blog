@@ -19,6 +19,8 @@ class UserController extends Controller
             exit;
         }
 
+        $error = null;
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $validator = new ValidatorRegister();
             $email = $validator->sanitizeEmail($_POST['email']);
@@ -47,7 +49,7 @@ class UserController extends Controller
             }
         }
 
-        $this->render('login/index', ['error' => $error ?? null]);
+        $this->render('login/index', ['error' => $error]);
     }
 
     /**
@@ -55,8 +57,19 @@ class UserController extends Controller
      */
     public function register()
     {
+        $errors = [];
+        $formData = [
+            'first_name' => $_POST['first_name'] ?? '',
+            'last_name' => $_POST['last_name'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'password' => $_POST['password'] ?? '',
+            'phone' => $_POST['phone'] ?? '',
+            'confirmedPassword' => $_POST['confirmedPassword'] ?? ''
+        ];
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Vérification du token CSRF
+            if (!isset($_POST['form_token']) || $_POST['form_token'] !== ($_SESSION['form_token'] ?? '')) {
             if (!isset($_POST['form_token']) || !isset($_SESSION['form_token']) || $_POST['form_token'] !== $_SESSION['form_token']) {
                 $errors[] = "Soumission de formulaire non autorisée.";
                 // Regénérer le token pour permettre une nouvelle soumission
@@ -106,6 +119,14 @@ class UserController extends Controller
                         //$this->render('user/register', ['errors' => $errors, 'form_token' => $form_token]);
                     }
                 } else {
+                    $errors[] = "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.";
+                }
+            }
+        }
+
+        // Génère un nouveau token CSRF uniquement en cas de première demande ou d'erreurs
+        $form_token = bin2hex(random_bytes(32));
+        $_SESSION['form_token'] = $form_token;
                     // Afficher les erreurs de validation et regénérer le token pour permettre une nouvelle tentative
                     //         $form_token = bin2hex(random_bytes(32));
                     //          $_SESSION['form_token'] = $form_token;
@@ -117,6 +138,12 @@ class UserController extends Controller
         $form_token = bin2hex(random_bytes(32));
         $_SESSION['form_token'] = $form_token;
 
+        // Affichage du formulaire avec les erreurs et les données pré-remplies
+        $this->render('user/register', [
+            'errors' => $errors,
+            'formData' => $formData,
+            'form_token' => $form_token
+        ]);
         // Afficher le formulaire d'inscription avec le token
         $this->render('user/register', [
             'form_token' => $form_token,

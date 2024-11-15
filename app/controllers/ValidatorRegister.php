@@ -33,7 +33,7 @@ class ValidatorRegister extends Validator
      */
     public function isEmailTaken(string $email): bool
     {
-        return $this->userManager->emailExists($email);  // Appelle la méthode dans UserManager
+        return $this->userManager->emailExists($email);
     }
 
     /**

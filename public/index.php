@@ -1,6 +1,7 @@
 <?php
 
-session_start(); // Démarre la session pour accéder à $_SESSION
+// Démarrage de la session pour permettre l'utilisation de $_SESSION partout
+session_start();
 
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
