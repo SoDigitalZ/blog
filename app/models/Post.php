@@ -4,123 +4,102 @@ namespace App\Models;
 
 class Post
 {
-    protected $p_id;
-    protected $u_id;
-    protected $p_author;
-    protected $p_title;
-    protected $p_chapo;
-    protected $p_content;
-    protected $p_added_datetime;
-    protected $p_update_datetime;
+    protected $id;
+    protected $user_id; // Ajout de la propriété user_id
+    protected $title;
+    protected $chapo;
+    protected $content;
+    protected $created_at;
+    protected $update_at;
 
-    public function hydrate($donnees)
+    // Hydratation de l'objet
+    public function hydrate(array $data): self
     {
-        foreach ($donnees as $key => $value) {
-            //on récupere le nom du setter correspondant à l'attribut.
-            $method = 'set' . ucfirst($key);
-
-            //Si le setter correspondant exite
+        foreach ($data as $key => $value) {
+            $method = 'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', $key)));
             if (method_exists($this, $method)) {
-                //On appelle le setter.
                 $this->$method($value);
             }
         }
         return $this;
     }
 
-    public function getP_id(): int
+    // Getters et Setters
+
+    public function getId(): ?int
     {
-        return $this->p_id;
+        return $this->id;
     }
 
-    public function setP_id(int $p_id): self
+    public function setId(int $id): self
     {
-        $this->p_id = $p_id;
-
+        $this->id = $id;
         return $this;
     }
 
-    public function getU_id(): int
+    public function getUserId(): ?int // Ajout du getter
     {
-        return $this->u_id;
+        return $this->user_id;
     }
 
-    public function setU_id(int $u_id): self
+    public function setUserId(int $user_id): self // Ajout du setter
     {
-        $this->u_id = $u_id;
-
+        $this->user_id = $user_id;
         return $this;
     }
 
-    public function getP_author(): string
+    public function getTitle(): ?string
     {
-        return $this->p_author;
+        return $this->title;
     }
 
-    public function setP_author(string $p_author): self
+    public function setTitle(string $title): self
     {
-        $this->p_author = $p_author;
-
+        $this->title = $title;
         return $this;
     }
 
-    public function getP_chapo(): string
+    public function getChapo(): ?string
     {
-        return $this->p_chapo;
+        return $this->chapo;
     }
 
-    public function setP_chapo(string $p_chapo): self
+    public function setChapo(string $chapo): self
     {
-        $this->p_chapo = $p_chapo;
-
+        $this->chapo = $chapo;
         return $this;
     }
 
-    public function getP_title(): string
+    public function getContent(): ?string
     {
-        return $this->p_title;
+        return $this->content;
     }
 
-    public function setP_title(string $p_title): self
+    public function setContent(string $content): self
     {
-        $this->p_title = $p_title;
-
+        $this->content = $content;
         return $this;
     }
 
-    public function getP_content(): string
+    public function getCreatedAt(): ?string
     {
-        return $this->p_content;
+        return $this->created_at;
     }
 
-    public function setP_content(string $p_content): self
+    public function setCreatedAt(string $created_at): self
     {
-        $this->p_content = $p_content;
-
+        $this->created_at = $created_at;
         return $this;
     }
 
-    public function getP_added_datetime(): string
+    public function getUpdateAt(): ?string
     {
-        return $this->p_added_datetime;
+        return $this->update_at;
     }
 
-    public function setP_added_datetime(string $p_added_datetime): self
+    public function setUpdateAt(string $update_at): self
     {
-        $this->p_added_datetime = $p_added_datetime;
-
-        return $this;
-    }
-
-    public function getP_update_datetime(): string
-    {
-        return $this->p_update_datetime;
-    }
-
-    public function setP_update_datetime(string $p_update_datetime): self
-    {
-        $this->p_update_datetime = $p_update_datetime;
-
+        $this->update_at = $update_at;
         return $this;
     }
 }

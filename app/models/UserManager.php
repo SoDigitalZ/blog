@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Core\Db;  // Utilisation de la classe Db pour gérer la connexion à la base de données
+use App\Core\Db;
 use PDO;
 
 class UserManager
@@ -11,73 +11,105 @@ class UserManager
 
     public function __construct()
     {
-        // Utilisation de la connexion unique à la base de données via la classe Db
         $this->db = Db::getInstance();
     }
 
     /**
-     * Trouver un utilisateur par son email
+     * Méthode générique pour rechercher un utilisateur par champ.
      *
-     * @param string $email
-     * @return array|false Retourne un tableau associatif contenant les informations de l'utilisateur ou false si non trouvé
+     * @param string $field
+     * @param mixed $value
+     * @return User|null
      */
-    public function findOneByEmail(string $email)
+    private function findOneByField(string $field, $value): ?User
     {
-        $query = $this->db->prepare("SELECT * FROM user WHERE email = :email");
-        $query->execute(['email' => $email]);
-        return $query->fetch(PDO::FETCH_ASSOC);  // Retourne les données de l'utilisateur sous forme de tableau associatif
+        // Limite les champs autorisés pour éviter les injections SQL
+        $allowedFields = ['id', 'email'];
+        if (!in_array($field, $allowedFields, true)) {
+            throw new \InvalidArgumentException("Le champ '$field' n'est pas autorisé.");
+        }
+
+        $query = $this->db->prepare("SELECT * FROM user WHERE $field = :value");
+        $query->execute(['value' => $value]);
+        $user = $query->fetchObject(User::class);
+
+        return $user ?: null;
     }
 
     /**
-     * Créer une session utilisateur
+     * Trouver un utilisateur par son email.
+     *
+     * @param string $email
+     * @return User|null
+     */
+    public function findOneByEmail(string $email): ?User
+    {
+        return $this->findOneByField('email', $email);
+    }
+
+    /**
+     * Trouver un utilisateur par son ID.
+     *
+     * @param int $id
+     * @return User|null
+     */
+    public function findOneById(int $id): ?User
+    {
+        return $this->findOneByField('id', $id);
+    }
+
+    /**
+     * Stocker les informations d'un utilisateur dans la session.
      *
      * @param User $user
+     * @return void
      */
-    public function setSession(User $user)
+    public function setSession(User $user): void
     {
-        // Stocker les informations de l'utilisateur dans la session PHP
         $_SESSION['user'] = [
-            'id' => $user->getId(),  // Récupère l'ID de l'utilisateur avec getId()
-            'email' => $user->getEmail(),  // Récupère l'email avec getEmail()
-            'first_name' => $user->getFirstName(),  // Récupère le prénom avec getFirstName()
-            'last_name' => $user->getLastName(),  // Récupère le nom avec getLastName()
-            'role' => $user->getRole()  // Récupère le rôle de l'utilisateur avec getRole()
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+            'role' => $user->getRole()
         ];
     }
 
     /**
-     * Enregistrer un nouvel utilisateur dans la base de données
+     * Enregistrer un nouvel utilisateur dans la base de données.
      *
      * @param User $user
      * @return bool
      */
     public function registerUser(User $user): bool
     {
-        // Hachage du mot de passe
-        $passwordHash = password_hash($user->getPassword(), PASSWORD_BCRYPT);
+        try {
+            // Hashage du mot de passe
+            $user->setPassword(password_hash($user->getPassword(), PASSWORD_BCRYPT));
 
-        // Préparer la requête d'insertion
-        $query = $this->db->prepare("
-        INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
-        VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
-    ");
+            $query = $this->db->prepare("
+                INSERT INTO user (first_name, last_name, email, password, phone, role, is_valid, banned)
+                VALUES (:first_name, :last_name, :email, :password, :phone, :role, :is_valid, :banned)
+            ");
 
-        // Exécuter la requête en passant les paramètres
-        return $query->execute([
-            'first_name' => $user->getFirstName(),
-            'last_name' => $user->getLastName(),
-            'email' => $user->getEmail(),
-            'password' => $passwordHash,
-            'phone' => $user->getPhone(),
-            'role' => $user->getRole(),
-            'is_valid' => $user->getIsValid(),
-            'banned' => $user->getBanned()
-        ]);
+            return $query->execute([
+                'first_name' => $user->getFirstName(),
+                'last_name' => $user->getLastName(),
+                'email' => $user->getEmail(),
+                'password' => $user->getPassword(), // Mot de passe hashé
+                'phone' => $user->getPhone(),
+                'role' => (int) $user->getRole(),
+                'is_valid' => (int) $user->getIsValid(),
+                'banned' => (int) $user->getBanned()
+            ]);
+        } catch (\PDOException $e) {
+            error_log("Erreur lors de l'enregistrement de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
-
     /**
-     * Vérifier si un utilisateur existe déjà par email
+     * Vérifier si un utilisateur existe déjà par email.
      *
      * @param string $email
      * @return bool
@@ -86,11 +118,11 @@ class UserManager
     {
         $query = $this->db->prepare("SELECT COUNT(*) FROM user WHERE email = :email");
         $query->execute(['email' => $email]);
-        return $query->fetchColumn() > 0;  // Retourne true si l'email existe déjà, sinon false
+        return $query->fetchColumn() > 0;
     }
 
     /**
-     * Mettre à jour les informations d'un utilisateur
+     * Mettre à jour les informations d'un utilisateur.
      *
      * @param int $id
      * @param array $data
@@ -98,57 +130,54 @@ class UserManager
      */
     public function updateUser(int $id, array $data): bool
     {
-        $query = $this->db->prepare("
-            UPDATE user 
-            SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, is_valid = :is_valid, banned = :banned 
-            WHERE id = :id
-        ");
+        try {
+            $query = $this->db->prepare("
+                UPDATE user 
+                SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, is_valid = :is_valid, banned = :banned 
+                WHERE id = :id
+            ");
 
-        return $query->execute([
-            'id' => $id,
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'],
-            'role' => $data['role'],
-            'is_valid' => $data['is_valid'],
-            'banned' => $data['banned']
-        ]);
+            return $query->execute([
+                'id' => $id,
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'role' => (int) $data['role'],
+                'is_valid' => (int) $data['is_valid'],
+                'banned' => (int) $data['banned']
+            ]);
+        } catch (\PDOException $e) {
+            error_log("Erreur lors de la mise à jour de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
-     * Supprimer un utilisateur de la base de données
+     * Supprimer un utilisateur de la base de données.
      *
      * @param int $id
      * @return bool
      */
     public function deleteUser(int $id): bool
     {
-        $query = $this->db->prepare("DELETE FROM user WHERE id = :id");
-        return $query->execute(['id' => $id]);
+        try {
+            $query = $this->db->prepare("DELETE FROM user WHERE id = :id");
+            return $query->execute(['id' => $id]);
+        } catch (\PDOException $e) {
+            error_log("Erreur lors de la suppression de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
-     * Trouver un utilisateur par son ID
+     * Récupérer tous les utilisateurs.
      *
-     * @param int $id
-     * @return array|false Retourne un tableau associatif contenant les informations de l'utilisateur ou false si non trouvé
+     * @return array
      */
-    public function findOneById(int $id)
-    {
-        $query = $this->db->prepare("SELECT * FROM user WHERE id = :id");
-        $query->execute(['id' => $id]);
-        return $query->fetch(PDO::FETCH_ASSOC);  // Retourne les données de l'utilisateur sous forme de tableau associatif
-    }
-
-    /**
-     * Récupérer tous les utilisateurs
-     *
-     * @return array|false Retourne un tableau associatif avec tous les utilisateurs ou false si erreur
-     */
-    public function findAll()
+    public function findAll(): array
     {
         $query = $this->db->query("SELECT * FROM user");
-        return $query->fetchAll(PDO::FETCH_ASSOC);
+        return $query->fetchAll(PDO::FETCH_CLASS, User::class) ?: [];
     }
 }
