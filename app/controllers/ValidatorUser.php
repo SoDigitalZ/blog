@@ -4,6 +4,16 @@ namespace App\Controllers;
 
 class ValidatorUser
 {
+    private const ERROR_MESSAGES = [
+        'email_required' => "L'email est obligatoire.",
+        'email_invalid' => "L'email n'est pas valide.",
+        'password_required' => "Le mot de passe est obligatoire.",
+        'password_invalid' => "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.",
+        'phone_invalid' => "Le numéro de téléphone doit être au format international ou contenir entre 10 et 15 chiffres.",
+        'user_not_found' => "Utilisateur introuvable.",
+        'password_incorrect' => "Mot de passe incorrect.",
+    ];
+
     /**
      * Valider un email
      * @param string $email
@@ -44,18 +54,13 @@ class ValidatorUser
      */
     public function validatePassword(string $password): bool
     {
-        // Vérifie si le mot de passe contient au moins :
-        // - 8 caractères
-        // - Une lettre majuscule
-        // - Une lettre minuscule
-        // - Un chiffre
         return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/', $password) === 1;
     }
 
     /**
      * Vérifier si le mot de passe fourni correspond au mot de passe haché
-     * @param string $inputPassword Le mot de passe saisi par l'utilisateur
-     * @param string $hashedPassword Le mot de passe haché stocké en base de données
+     * @param string $inputPassword
+     * @param string $hashedPassword
      * @return bool
      */
     public function verifyPassword(string $inputPassword, string $hashedPassword): bool
@@ -70,7 +75,6 @@ class ValidatorUser
      */
     public function validatePhone(string $phone): bool
     {
-        // Format international : + suivi de 10 à 15 chiffres, ou local avec 10 à 15 chiffres
         return preg_match('/^\+?[0-9]{10,15}$/', $phone) === 1;
     }
 
@@ -78,27 +82,38 @@ class ValidatorUser
      * Valider un formulaire de connexion
      * Vérifie que l'email est valide et que le mot de passe n'est pas vide
      * @param array $formData Données du formulaire (email, password)
-     * @return array
+     * @param bool $userExists Résultat de la vérification de l'utilisateur (true si trouvé)
+     * @param bool|null $passwordValid Résultat de la vérification du mot de passe (null si utilisateur introuvable)
+     * @return array array{errors: array<string, string>, data: array<string, string>}
      */
-    public function validateLogin(array $formData): array
+    public function validateLogin(array $formData, bool $userExists = true, ?bool $passwordValid = null): array
     {
         $errors = [];
         $validatedData = [];
 
         // Valider l'email
         if (empty($formData['email'])) {
-            $errors['email'] = "L'email est obligatoire.";
+            $errors['email'] = self::ERROR_MESSAGES['email_required'];
         } elseif (!$this->validateEmail($formData['email'])) {
-            $errors['email'] = "L'email n'est pas valide.";
+            $errors['email'] = self::ERROR_MESSAGES['email_invalid'];
         } else {
             $validatedData['email'] = $this->sanitizeEmail($formData['email']);
         }
 
         // Valider le mot de passe
         if (empty($formData['password'])) {
-            $errors['password'] = "Le mot de passe est obligatoire.";
+            $errors['password'] = self::ERROR_MESSAGES['password_required'];
         } else {
             $validatedData['password'] = $formData['password'];
+        }
+
+        // Ajout des erreurs générales si aucune autre erreur détectée
+        if (empty($errors)) {
+            if (!$userExists) {
+                $errors['email'] = self::ERROR_MESSAGES['user_not_found'];
+            } elseif ($passwordValid === false) {
+                $errors['password'] = self::ERROR_MESSAGES['password_incorrect'];
+            }
         }
 
         return ['errors' => $errors, 'data' => $validatedData];

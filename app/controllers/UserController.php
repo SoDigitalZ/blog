@@ -9,175 +9,119 @@ use App\Controllers\ValidatorRegister;
 
 class UserController extends Controller
 {
+    private UserManager $userManager;
+    private ValidatorRegister $validator;
+
+    public function __construct()
+    {
+        // Initialisation des dépendances
+        $this->userManager = new UserManager();
+        $this->validator = new ValidatorRegister(); // Utilisé pour les validations (extend ValidatorUser)
+    }
+
     /**
-     * Fonction de connexion
+     * Gérer la connexion d'un utilisateur
      */
-    public function index()
+    public function login()
     {
         if ($this->isUserLoggedIn()) {
             header('Location: /admin');
             exit;
         }
 
-        $error = null;
+        $fieldErrors = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $validator = new ValidatorRegister();
-            $email = $validator->sanitizeEmail($_POST['email']);
-            $password = $_POST['password'];
+            // Récupère l'utilisateur
+            $user = $this->userManager->findOneByEmail($_POST['email'] ?? null);
 
-            if ($validator->validateLoginForm($email, $password)) {
-                $userManager = new UserManager();
-                $userFind = $userManager->findOneByEmail($email);
+            // Valide le formulaire
+            $validationResult = $this->validator->validateLogin(
+                $_POST,
+                userExists: $user !== null,
+                passwordValid: $user ? $this->validator->verifyPassword($_POST['password'], $user->getPassword()) : null
+            );
 
-                if ($userFind) {
-                    $user = new User();
-                    $user->hydrate($userFind);
+            $fieldErrors = $validationResult['errors'];
 
-                    if ($validator->verifyPassword($password, $user->getPassword())) {
-                        $userManager->setSession($user);
-                        header('Location: /admin');
-                        exit;
-                    } else {
-                        $error = "Mot de passe incorrect.";
-                    }
-                } else {
-                    $error = "Utilisateur introuvable.";
-                }
-            } else {
-                $error = "Veuillez remplir tous les champs.";
+            if (empty($fieldErrors)) {
+                $this->userManager->setSession($user);
+                header('Location: /');
+                exit;
             }
         }
 
-        $this->render('login/index', ['error' => $error]);
+        $this->render('login/index', ['fieldErrors' => $fieldErrors]);
     }
 
-    /**
-     * Fonction d'inscription
-     */
     public function register()
     {
-        $errors = [];
-        $formData = [
-            'first_name' => $_POST['first_name'] ?? '',
-            'last_name' => $_POST['last_name'] ?? '',
-            'email' => $_POST['email'] ?? '',
-            'password' => $_POST['password'] ?? '',
-            'phone' => $_POST['phone'] ?? '',
-            'confirmedPassword' => $_POST['confirmedPassword'] ?? ''
-        ];
+        $fieldErrors = [];
+        $formData = $_POST; // Conserve les données saisies par l'utilisateur
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Vérification du token CSRF
-            if (!isset($_POST['form_token']) || $_POST['form_token'] !== ($_SESSION['form_token'] ?? '')) {
-            if (!isset($_POST['form_token']) || !isset($_SESSION['form_token']) || $_POST['form_token'] !== $_SESSION['form_token']) {
-                $errors[] = "Soumission de formulaire non autorisée.";
-                // Regénérer le token pour permettre une nouvelle soumission
-                //$form_token = bin2hex(random_bytes(32));
-                //          $_SESSION['form_token'] = $form_token;
-                //        $this->render('user/register', ['errors' => $errors, 'form_token' => $form_token]);
-                //        return;
-            } else {
+            if (!isset($formData['form_token']) || $formData['form_token'] !== ($_SESSION['form_token'] ?? '')) {
+                $fieldErrors['form_token'] = "Soumission de formulaire non autorisée.";
+            }
+            unset($_SESSION['form_token']); // Supprime le token après usage
 
-                // Supprimer le token après vérification pour empêcher une réutilisation
-                //unset($_SESSION['form_token']);
+            // Crée un objet User
+            $user = new User($formData);
 
-                // Création de l'objet User et hydratation
-                $user = new User();
-                $user->setFirstName($_POST['first_name']);
-                $user->setLastName($_POST['last_name']);
-                $user->setEmail($_POST['email']);
-                $user->setPassword($_POST['password']);
-                $user->setConfirmedPassword($_POST['confirmedPassword']);
-                $user->setPhone($_POST['phone']);
-                $confirmedPassword = $_POST['confirmedPassword'];
+            // Valide l'objet User
+            $fieldErrors = $this->validator->validateRegistration($user);
 
-                // Préparer les données pour la validation
-                //  $userData = [
-                //      'first_name' => $user->getFirstName(),
-                //     'last_name' => $user->getLastName(),
-                //      'email' => $user->getEmail(),
-                //      'password' => $user->getPassword(),
-                //      'phone' => $user->getPhone(),
-                //      'confirmedPassword' => $confirmedPassword
-                //   ];
-
-                // Valider les données avec ValidatorRegister
-                $validator = new ValidatorRegister();
-                $errors = $validator->validateRegistration($user);
-
-                if (empty($errors)) {
-                    $userManager = new UserManager();
-                    if ($userManager->registerUser($user)) {
-                        $success = "Utilisateur enregistré avec succès.";
-                        //$this->render('user/register', ['success' => $success]);
-                    } else {
-                        $errors[] = "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.";
-                        // Regénérer un nouveau token pour permettre une nouvelle soumission en cas d'erreur d'enregistrement
-                        //          $form_token = bin2hex(random_bytes(32));
-                        //         $_SESSION['form_token'] = $form_token;
-                        //$this->render('user/register', ['errors' => $errors, 'form_token' => $form_token]);
-                    }
-                } else {
-                    $errors[] = "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.";
+            if (empty($fieldErrors)) {
+                // Enregistre l'utilisateur via le UserManager
+                if ($this->userManager->registerUser($user)) {
+                    $this->render('user/register', ['success' => "Utilisateur enregistré avec succès."]);
+                    return;
                 }
+
+                $fieldErrors['general'] = "Une erreur est survenue lors de l'enregistrement.";
             }
         }
 
-        // Génère un nouveau token CSRF uniquement en cas de première demande ou d'erreurs
-        $form_token = bin2hex(random_bytes(32));
-        $_SESSION['form_token'] = $form_token;
-                    // Afficher les erreurs de validation et regénérer le token pour permettre une nouvelle tentative
-                    //         $form_token = bin2hex(random_bytes(32));
-                    //          $_SESSION['form_token'] = $form_token;
-                    //$this->render('user/register', ['errors' => $errors, 'form_token' => $form_token]);
-                }
-            }
-        } //else {
-        // Générer et stocker le token CSRF dans la session pour la première affichage du formulaire
         $form_token = bin2hex(random_bytes(32));
         $_SESSION['form_token'] = $form_token;
 
-        // Affichage du formulaire avec les erreurs et les données pré-remplies
+        // Transmet les données saisies et les erreurs à la vue
         $this->render('user/register', [
-            'errors' => $errors,
+            'fieldErrors' => $fieldErrors,
             'formData' => $formData,
             'form_token' => $form_token
         ]);
-        // Afficher le formulaire d'inscription avec le token
-        $this->render('user/register', [
-            'form_token' => $form_token,
-            'errors' => $errors ?? '',
-            'success' => $success ?? ''
-        ]);
-        //   }
     }
 
-
-    /**
-     * Fonction de déconnexion
-     */
-    public function logout()
+    public function profile()
     {
-        $this->destroyUserSession();
-        header('Location: /');
-        exit;
+        // Vérifie si l'utilisateur est connecté
+        if (!isset($_SESSION['user'])) {
+            header('Location: /user/login');
+            exit;
+        }
+
+        // Récupère les données de l'utilisateur depuis la session
+        $user = $_SESSION['user'];
+
+        // Affiche la vue du profil
+        $this->render('user/profile', ['user' => $user]);
     }
 
-    /**
-     * Vérifie si un utilisateur est connecté
-     */
     private function isUserLoggedIn(): bool
     {
         return isset($_SESSION['user']);
     }
 
-    /**
-     * Détruit la session utilisateur
-     */
-    private function destroyUserSession()
+    public function logout()
     {
+        // Supprime les données de la session
         unset($_SESSION['user']);
         session_destroy();
+
+        // Redirige vers la page d'accueil
+        header('Location: /');
+        exit;
     }
 }

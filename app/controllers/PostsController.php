@@ -3,44 +3,134 @@
 namespace App\Controllers;
 
 use App\Models\PostManager;
+use App\Models\Post;
 
 class PostsController extends Controller
 {
-    /**
-     * Affiche la liste des articles.
-     */
     public function index()
     {
-        // Instancie le PostManager pour accéder aux articles
         $postManager = new PostManager();
-
-        // Récupère tous les articles
         $posts = $postManager->findAll();
 
-        // Rend la vue avec les données des articles
         $this->render('posts/index', compact('posts'));
     }
 
-    /**
-     * Affiche un article spécifique par son ID.
-     * @param int $id L'ID de l'article
-     */
-    public function show($id)
+    public function show(int $id)
     {
-        // Instancie le PostManager pour accéder aux articles
         $postManager = new PostManager();
+        $post = $postManager->find($id);
 
-        // Récupère l'article avec l'ID spécifié
-        $post = $postManager->find($id, 'id');
-
-        // Si l'article n'existe pas, affiche une page 404
         if (!$post) {
             http_response_code(404);
-            echo "L'article n'existe pas.";
+            echo "<h1>404 Not Found</h1>";
+            echo "<p>L'article demandé n'existe pas.</p>";
             exit();
         }
 
-        // Rend la vue avec les données de l'article
         $this->render('posts/show', compact('post'));
+    }
+
+    public function create()
+    {
+        $errors = [];
+        $formData = $_POST;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Validation des champs requis
+            if (empty($formData['title'])) {
+                $errors['title'] = "Le titre est obligatoire.";
+            }
+            if (empty($formData['chapo'])) {
+                $errors['chapo'] = "Le chapeau est obligatoire.";
+            }
+            if (empty($formData['content'])) {
+                $errors['content'] = "Le contenu est obligatoire.";
+            }
+
+            if (empty($errors)) {
+                $post = new Post($formData);
+
+                $postManager = new PostManager();
+                if ($postManager->create($post)) {
+                    header('Location: /posts');
+                    exit();
+                } else {
+                    $errors['general'] = "Une erreur est survenue lors de l'enregistrement de l'article.";
+                }
+            }
+        }
+
+        $this->render('posts/create', [
+            'errors' => $errors,
+            'formData' => $formData
+        ]);
+    }
+
+    public function edit(int $id)
+    {
+        $postManager = new PostManager();
+        $post = $postManager->find($id);
+
+        if (!$post) {
+            http_response_code(404);
+            echo "<h1>404 Not Found</h1>";
+            echo "<p>L'article demandé n'existe pas.</p>";
+            exit();
+        }
+
+        $errors = [];
+        $formData = $_POST;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (empty($formData['title'])) {
+                $errors['title'] = "Le titre est obligatoire.";
+            }
+            if (empty($formData['chapo'])) {
+                $errors['chapo'] = "Le chapeau est obligatoire.";
+            }
+            if (empty($formData['content'])) {
+                $errors['content'] = "Le contenu est obligatoire.";
+            }
+
+            if (empty($errors)) {
+                $post->setTitle($formData['title'])
+                    ->setChapo($formData['chapo'])
+                    ->setContent($formData['content']);
+
+                if ($postManager->update($post)) {
+                    header('Location: /posts');
+                    exit();
+                } else {
+                    $errors['general'] = "Une erreur est survenue lors de la mise à jour de l'article.";
+                }
+            }
+        }
+
+        $this->render('posts/edit', [
+            'post' => $post,
+            'errors' => $errors,
+            'formData' => $formData
+        ]);
+    }
+
+    public function delete(int $id)
+    {
+        $postManager = new PostManager();
+        $post = $postManager->find($id);
+
+        if (!$post) {
+            http_response_code(404);
+            echo "<h1>404 Not Found</h1>";
+            echo "<p>L'article demandé n'existe pas.</p>";
+            exit();
+        }
+
+        if ($postManager->delete($id)) {
+            header('Location: /posts');
+            exit();
+        } else {
+            echo "<h1>Erreur</h1>";
+            echo "<p>Impossible de supprimer l'article.</p>";
+        }
     }
 }
