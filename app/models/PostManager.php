@@ -27,14 +27,24 @@ class PostManager extends Manager
 
     public function create(Post $post): bool
     {
+
+        error_log("Post object before insertion: " . json_encode([
+            'user_id' => $post->getUserId(),
+            'title' => $post->getTitle(),
+            'chapo' => $post->getChapo(),
+            'content' => $post->getContent(),
+            'image' => $post->getImage(),
+        ]));
         $query = $this->requete("
-            INSERT INTO {$this->table} (user_id, title, chapo, content, created_at)
-            VALUES (:user_id, :title, :chapo, :content, NOW())
+            INSERT INTO {$this->table} (user_id, title, chapo, content, image, category_id, created_at)
+            VALUES (:user_id, :title, :chapo, :content, :image, :category_id, NOW())
         ", [
             'user_id' => $post->getUserId(),
             'title' => $post->getTitle(),
             'chapo' => $post->getChapo(),
             'content' => $post->getContent(),
+            'image' => $post->getImage(), // Accepte une valeur NULL si aucune image n'est fournie
+            'category_id' => $post->getCategoryId(),
         ]);
 
         return $query->rowCount() > 0;
@@ -48,6 +58,8 @@ class PostManager extends Manager
                 title = :title,
                 chapo = :chapo,
                 content = :content,
+                image = :image,
+                category_id = :category_id,
                 update_at = NOW()
             WHERE id = :id
         ", [
@@ -55,6 +67,8 @@ class PostManager extends Manager
             'title' => $post->getTitle(),
             'chapo' => $post->getChapo(),
             'content' => $post->getContent(),
+            'image' => $post->getImage(), // Accepte une valeur NULL si aucune image n'est fournie
+            'category_id' => $post->getCategoryId(),
         ]);
 
         return $query->rowCount() > 0;

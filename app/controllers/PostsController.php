@@ -50,6 +50,15 @@ class PostsController extends Controller
         $formData = $_POST;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Vérifiez que l'utilisateur est connecté
+            if (!isset($_SESSION['user'])) {
+                header('Location: /user/login');
+                exit;
+            }
+
+            // Récupérez l'utilisateur connecté
+            $userId = $_SESSION['user']['id'];
+
             // Validation des champs requis
             if (empty($formData['title'])) {
                 $errors['title'] = "Le titre est obligatoire.";
@@ -62,8 +71,13 @@ class PostsController extends Controller
             }
 
             if (empty($errors)) {
+                // Ajoutez l'ID utilisateur connecté aux données
+                $formData['user_id'] = $userId;
+
+                // Hydratez l'objet Post avec les données
                 $post = new Post($formData);
 
+                // Enregistrez l'article
                 $postManager = new PostManager();
                 if ($postManager->create($post)) {
                     header('Location: /posts');
@@ -74,11 +88,13 @@ class PostsController extends Controller
             }
         }
 
+        // Transmettez les erreurs et les données à la vue
         $this->render('posts/create', [
             'errors' => $errors,
-            'formData' => $formData
+            'formData' => $formData,
         ]);
     }
+
 
     public function edit(int $id)
     {

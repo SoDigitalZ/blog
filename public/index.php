@@ -1,5 +1,10 @@
 <?php
 
+session_set_cookie_params([
+    'secure' => true, // En HTTPS uniquement
+    'httponly' => true, // Accessible uniquement via PHP
+    'samesite' => 'Strict' // Protège contre les attaques CSRF
+]);
 // Démarrage de la session pour permettre l'utilisation de $_SESSION partout
 session_start();
 

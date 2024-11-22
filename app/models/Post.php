@@ -9,10 +9,26 @@ class Post
     protected $title;
     protected $chapo;
     protected $content;
+    protected $image;
+    protected $category_id;
     protected $created_at;
     protected $update_at;
 
-    // Hydratation de l'objet
+    public function __construct(array $data = [])
+    {
+        if (!empty($data)) {
+            $this->hydrate($data);
+        }
+        // Assure qu'une image par défaut est définie si aucune n'est fournie
+        if (empty($this->image)) {
+            $this->setImage(null); // setImage appliquera automatiquement la valeur par défaut
+        }
+        // Assure qu'une valeur par défaut est définie pour category_id
+        if ($this->category_id === null) {
+            $this->setCategoryId(1); // ID de catégorie par défaut
+        }
+    }
+
     public function hydrate(array $data): self
     {
         foreach ($data as $key => $value) {
@@ -23,6 +39,7 @@ class Post
         }
         return $this;
     }
+
 
     // Getters et Setters
 
@@ -78,6 +95,28 @@ class Post
     public function setContent(string $content): self
     {
         $this->content = $content;
+        return $this;
+    }
+
+    public function setImage(?string $image): self
+    {
+        $this->image = $image ?: '/images/default.jpg'; // Définit une image par défaut si $image est vide ou null
+        return $this;
+    }
+
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function getCategoryId(): ?int
+    {
+        return $this->category_id;
+    }
+
+    public function setCategoryId(?int $category_id): self
+    {
+        $this->category_id = $category_id;
         return $this;
     }
 
