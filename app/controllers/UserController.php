@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Core\Request;
+use App\Core\Session;
 use App\Models\UserManager;
 use App\Models\User;
 use App\Controllers\ValidatorRegister;
@@ -20,9 +22,9 @@ class UserController extends Controller
         $this->postManager = new PostManager();
     }
 
-    public function login()
+    public function login(Request $request)
     {
-        if ($this->isUserLoggedIn()) {
+        if (Session::has('user')) {
             header('Location: /admin');
             exit;
         }
@@ -30,18 +32,25 @@ class UserController extends Controller
         $fieldErrors = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $user = $this->userManager->findOneByEmail($_POST['email'] ?? null);
+            $email = $request->post('email');
+            $password = $request->post('password');
+
+            $user = $this->userManager->findOneByEmail($email);
 
             $validationResult = $this->validator->validateLogin(
-                $_POST,
+                ['email' => $email, 'password' => $password],
                 userExists: $user !== null,
-                passwordValid: $user ? $this->validator->verifyPassword($_POST['password'], $user->getPassword()) : null
+                passwordValid: $user ? $this->validator->verifyPassword($password, $user->getPassword()) : null
             );
 
             $fieldErrors = $validationResult['errors'];
 
             if (empty($fieldErrors)) {
-                $this->userManager->setSession($user);
+                Session::set('user', [
+                    'id' => $user->getId(),
+                    'email' => $user->getEmail(),
+                    'role' => $user->getRole(),
+                ]);
                 header('Location: /');
                 exit;
             }
@@ -50,16 +59,17 @@ class UserController extends Controller
         $this->render('login/index', ['fieldErrors' => $fieldErrors]);
     }
 
-    public function register()
+    public function register(Request $request)
     {
         $fieldErrors = [];
-        $formData = $_POST;
+        $formData = $request->allPost();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!isset($formData['form_token']) || $formData['form_token'] !== ($_SESSION['form_token'] ?? '')) {
+            $formToken = $request->post('form_token');
+            if (!$formToken || $formToken !== Session::get('form_token', '')) {
                 $fieldErrors['form_token'] = "Soumission de formulaire non autorisée.";
             }
-            unset($_SESSION['form_token']);
+            Session::delete('form_token');
 
             $user = new User($formData);
             $fieldErrors = $this->validator->validateRegistration($user);
@@ -78,28 +88,26 @@ class UserController extends Controller
             }
         }
 
-        $form_token = bin2hex(random_bytes(32));
-        $_SESSION['form_token'] = $form_token;
+        $formToken = bin2hex(random_bytes(32));
+        Session::set('form_token', $formToken);
 
         $this->render('user/register', [
             'fieldErrors' => $fieldErrors,
             'formData' => $formData,
-            'form_token' => $form_token
+            'form_token' => $formToken,
         ]);
     }
 
-    public function profile()
+    public function profile(Request $request)
     {
-        if (!isset($_SESSION['user'])) {
+        if (!Session::has('user')) {
             header('Location: /user/login');
             exit;
         }
 
-        $user = $_SESSION['user'];
+        $user = Session::get('user');
         $postsPerPage = 5;
-        $currentPage = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
-            ? (int)$_GET['page']
-            : 1;
+        $currentPage = $request->get('page', 1);
         $offset = ($currentPage - 1) * $postsPerPage;
 
         $posts = $this->postManager->findPaginatedByUser($user['id'], $postsPerPage, $offset);
@@ -121,13 +129,13 @@ class UserController extends Controller
 
     private function isUserLoggedIn(): bool
     {
-        return isset($_SESSION['user']);
+        return Session::has('user');
     }
 
     public function logout()
     {
-        unset($_SESSION['user']);
-        session_destroy();
+        Session::delete('user');
+        Session::destroy();
         header('Location: /');
         exit;
     }
