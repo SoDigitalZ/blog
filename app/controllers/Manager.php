@@ -19,14 +19,22 @@ class Manager
     }
 
     // Méthode d'exécution des requêtes préparées
-    public function requete(string $sql, array $attributs = null)
+    protected function requete(string $sql, array $attributs = null)
     {
-        if ($attributs !== null) {
-            $query = $this->db->prepare($sql);  // Appel à PDO::prepare()
-            $query->execute($attributs);
+        try {
+            if ($attributs !== null) {
+                $query = $this->db->prepare($sql);
+                $query->execute($attributs);
+            } else {
+                $query = $this->db->query($sql);
+            }
+
             return $query;
-        } else {
-            return $this->db->query($sql);
+        } catch (\PDOException $e) {
+            error_log("Erreur SQL : " . $sql);
+            error_log("Attributs : " . json_encode($attributs));
+            error_log("Message PDO : " . $e->getMessage());
+            throw $e;
         }
     }
 }

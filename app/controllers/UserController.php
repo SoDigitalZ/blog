@@ -5,23 +5,21 @@ namespace App\Controllers;
 use App\Models\UserManager;
 use App\Models\User;
 use App\Controllers\ValidatorRegister;
-
+use App\Models\PostManager;
 
 class UserController extends Controller
 {
     private UserManager $userManager;
     private ValidatorRegister $validator;
+    private PostManager $postManager;
 
     public function __construct()
     {
-        // Initialisation des dépendances
         $this->userManager = new UserManager();
-        $this->validator = new ValidatorRegister(); // Utilisé pour les validations (extend ValidatorUser)
+        $this->validator = new ValidatorRegister();
+        $this->postManager = new PostManager();
     }
 
-    /**
-     * Gérer la connexion d'un utilisateur
-     */
     public function login()
     {
         if ($this->isUserLoggedIn()) {
@@ -32,10 +30,8 @@ class UserController extends Controller
         $fieldErrors = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Récupère l'utilisateur
             $user = $this->userManager->findOneByEmail($_POST['email'] ?? null);
 
-            // Valide le formulaire
             $validationResult = $this->validator->validateLogin(
                 $_POST,
                 userExists: $user !== null,
@@ -57,36 +53,34 @@ class UserController extends Controller
     public function register()
     {
         $fieldErrors = [];
-        $formData = $_POST; // Conserve les données saisies par l'utilisateur
+        $formData = $_POST;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Vérification du token CSRF
             if (!isset($formData['form_token']) || $formData['form_token'] !== ($_SESSION['form_token'] ?? '')) {
                 $fieldErrors['form_token'] = "Soumission de formulaire non autorisée.";
             }
-            unset($_SESSION['form_token']); // Supprime le token après usage
+            unset($_SESSION['form_token']);
 
-            // Crée un objet User
             $user = new User($formData);
-
-            // Valide l'objet User
             $fieldErrors = $this->validator->validateRegistration($user);
 
             if (empty($fieldErrors)) {
-                // Enregistre l'utilisateur via le UserManager
-                if ($this->userManager->registerUser($user)) {
-                    $this->render('user/register', ['success' => "Utilisateur enregistré avec succès."]);
-                    return;
+                try {
+                    if ($this->userManager->registerUser($user)) {
+                        $this->render('user/register', ['success' => "Utilisateur enregistré avec succès."]);
+                        return;
+                    }
+                    $fieldErrors['general'] = "Une erreur est survenue lors de l'enregistrement.";
+                } catch (\Exception $e) {
+                    error_log($e->getMessage());
+                    $fieldErrors['general'] = "Erreur inattendue. Veuillez réessayer plus tard.";
                 }
-
-                $fieldErrors['general'] = "Une erreur est survenue lors de l'enregistrement.";
             }
         }
 
         $form_token = bin2hex(random_bytes(32));
         $_SESSION['form_token'] = $form_token;
 
-        // Transmet les données saisies et les erreurs à la vue
         $this->render('user/register', [
             'fieldErrors' => $fieldErrors,
             'formData' => $formData,
@@ -96,17 +90,33 @@ class UserController extends Controller
 
     public function profile()
     {
-        // Vérifie si l'utilisateur est connecté
         if (!isset($_SESSION['user'])) {
             header('Location: /user/login');
             exit;
         }
 
-        // Récupère les données de l'utilisateur depuis la session
         $user = $_SESSION['user'];
+        $postsPerPage = 5;
+        $currentPage = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
+            ? (int)$_GET['page']
+            : 1;
+        $offset = ($currentPage - 1) * $postsPerPage;
 
-        // Affiche la vue du profil
-        $this->render('user/profile', ['user' => $user]);
+        $posts = $this->postManager->findPaginatedByUser($user['id'], $postsPerPage, $offset);
+        $totalPosts = $this->postManager->countByUser($user['id']);
+        $totalPages = ceil($totalPosts / $postsPerPage);
+
+        if ($currentPage > $totalPages && $totalPages > 0) {
+            header("Location: /user/profile?page=$totalPages");
+            exit();
+        }
+
+        $this->render('user/profile', [
+            'user' => $user,
+            'posts' => $posts,
+            'currentPage' => $currentPage,
+            'totalPages' => $totalPages,
+        ]);
     }
 
     private function isUserLoggedIn(): bool
@@ -116,11 +126,8 @@ class UserController extends Controller
 
     public function logout()
     {
-        // Supprime les données de la session
         unset($_SESSION['user']);
         session_destroy();
-
-        // Redirige vers la page d'accueil
         header('Location: /');
         exit;
     }

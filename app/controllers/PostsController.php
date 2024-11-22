@@ -10,10 +10,24 @@ class PostsController extends Controller
     public function index()
     {
         $postManager = new PostManager();
-        $posts = $postManager->findAll();
 
-        $this->render('posts/index', compact('posts'));
+        // Paramètres de pagination
+        $postsPerPage = 16; // Nombre d'articles par page
+        $currentPage = $_GET['page'] ?? 1; // Page actuelle (par défaut 1)
+        $offset = ($currentPage - 1) * $postsPerPage; // Calcul de l'offset
+
+        // Récupérer les articles paginés et le nombre total d'articles
+        $posts = $postManager->findPaginated($postsPerPage, $offset);
+        $totalPosts = $postManager->countAll();
+        $totalPages = ceil($totalPosts / $postsPerPage);
+
+        $this->render('posts/index', [
+            'posts' => $posts,
+            'currentPage' => $currentPage,
+            'totalPages' => $totalPages,
+        ]);
     }
+
 
     public function show(int $id)
     {
