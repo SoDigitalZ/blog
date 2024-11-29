@@ -10,7 +10,7 @@ class ValidatorUser
         'password_required' => "Le mot de passe est obligatoire.",
         'password_invalid' => "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.",
         'phone_invalid' => "Le numéro de téléphone doit être au format international ou contenir entre 10 et 15 chiffres.",
-        'user_not_found' => "Utilisateur introuvable.",
+        'user_not_found' => "identifiant et/ou mot de passe incorrect.",
         'password_incorrect' => "Mot de passe incorrect.",
     ];
 
