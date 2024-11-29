@@ -25,7 +25,7 @@ class UserController extends Controller
     public function login(Request $request)
     {
         if (Session::has('user')) {
-            header('Location: /admin');
+            header('Location: /');
             exit;
         }
 
@@ -59,8 +59,47 @@ class UserController extends Controller
         $this->render('login/index', ['fieldErrors' => $fieldErrors]);
     }
 
+    /**   public function login(Request $request)
+{
+    if (Session::has('user')) {
+        header('Location: /admin');
+        exit;
+    }
+
+    $validationResult = ($_SERVER['REQUEST_METHOD'] === 'POST')
+        ? $this->validator->validateLogin(
+            [
+                'email' => $request->post('email'),
+                'password' => $request->post('password'),
+            ],
+            userExists: ($user = $this->userManager->findOneByEmail($request->post('email'))) !== null,
+            passwordValid: $user ? $this->validator->verifyPassword($request->post('password'), $user->getPassword()) : null
+        )
+        : ['errors' => []];
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($validationResult['errors'])) {
+        Session::set('user', [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'role' => $user->getRole(),
+        ]);
+        header('Location: /');
+        exit;
+    }
+
+    // Utilisation de la ternaire directement dans le render
+    $this->render('login/index', ['fieldErrors' => $validationResult['errors'] ?? []]);
+}
+     **/
+
     public function register(Request $request)
     {
+        if (Session::has('user')) {
+            // Redirection si l'utilisateur est déjà connecté
+            header('Location: /');
+            exit;
+        }
+
         $fieldErrors = [];
         $formData = $request->allPost();
 
@@ -134,6 +173,12 @@ class UserController extends Controller
 
     public function logout()
     {
+        if (!Session::has('user')) {
+            // Redirection si l'utilisateur n'est pas connecté
+            header('Location: /user/login');
+            exit;
+        }
+
         Session::delete('user');
         Session::destroy();
         header('Location: /');
