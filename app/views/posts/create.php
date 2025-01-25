@@ -1,7 +1,7 @@
 <div class="container my-5">
     <h1 class="text-center">Créer un nouvel article</h1>
 
-    <form method="POST" action="/posts/create">
+    <form method="POST" action="/posts/create" enctype="multipart/form-data" novalidate>
         <!-- Titre -->
         <div class="mb-3">
             <label for="title" class="form-label">Titre</label>
@@ -29,10 +29,19 @@
             <?php endif; ?>
         </div>
 
+        <!-- Image -->
+        <div class="mb-3">
+            <label for="image" class="form-label">Image de l'article</label>
+            <input type="file" name="image" id="image" class="form-control" accept="image/*">
+            <?php if (!empty($errors['image'])): ?>
+                <div class="text-danger"><?= htmlspecialchars($errors['image']) ?></div>
+            <?php endif; ?>
+        </div>
+
         <!-- Soumettre -->
         <button type="submit" class="btn btn-success">Créer l'article</button>
 
         <!-- Retour -->
-        <a href="/posts" class="btn btn-secondary">Retour</a>
+        <a href="/user/profile" class="btn btn-secondary">Retour</a>
     </form>
 </div>

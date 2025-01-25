@@ -12,40 +12,42 @@ use App\Models\PostManager;
 class UserController extends Controller
 {
     private UserManager $userManager;
-    private ValidatorRegister $validator;
     private PostManager $postManager;
 
     public function __construct()
     {
         $this->userManager = new UserManager();
-        $this->validator = new ValidatorRegister();
         $this->postManager = new PostManager();
     }
 
+    /**
+     * Gestion de la connexion de l'utilisateur
+     */
     public function login(Request $request)
     {
+        // Redirection si l'utilisateur est déjà connecté
         if (Session::has('user')) {
             header('Location: /');
             exit;
         }
 
-        $fieldErrors = [];
+        // Récupération des données du formulaire
+        $formData = $request->allPost();
+        // -> voir register - $user = new User($formData);
 
+        // Validation avec ValidatorUser
+        $validator = new ValidatorUser($formData);
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $email = $request->post('email');
-            $password = $request->post('password');
+            $validator->validate(); // Exécute la validation
+        }
 
-            $user = $this->userManager->findOneByEmail($email);
+        $fieldErrors = $validator->getErrors();
 
-            $validationResult = $this->validator->validateLogin(
-                ['email' => $email, 'password' => $password],
-                userExists: $user !== null,
-                passwordValid: $user ? $this->validator->verifyPassword($password, $user->getPassword()) : null
-            );
-
-            $fieldErrors = $validationResult['errors'];
-
-            if (empty($fieldErrors)) {
+        // Si la validation est correcte et qu'aucune erreur n'est présente
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validator->isValid()) {
+            $user = $validator->getUser();
+            if ($user) {
+                // Création de la session utilisateur
                 Session::set('user', [
                     'id' => $user->getId(),
                     'email' => $user->getEmail(),
@@ -56,73 +58,50 @@ class UserController extends Controller
             }
         }
 
-        $this->render('login/index', ['fieldErrors' => $fieldErrors]);
-    }
-
-    /**   public function login(Request $request)
-{
-    if (Session::has('user')) {
-        header('Location: /admin');
-        exit;
-    }
-
-    $validationResult = ($_SERVER['REQUEST_METHOD'] === 'POST')
-        ? $this->validator->validateLogin(
-            [
-                'email' => $request->post('email'),
-                'password' => $request->post('password'),
-            ],
-            userExists: ($user = $this->userManager->findOneByEmail($request->post('email'))) !== null,
-            passwordValid: $user ? $this->validator->verifyPassword($request->post('password'), $user->getPassword()) : null
-        )
-        : ['errors' => []];
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($validationResult['errors'])) {
-        Session::set('user', [
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'role' => $user->getRole(),
+        // On affiche la vue de connexion avec la ternaire pour les erreurs
+        $this->render('login/index', [
+            'fieldErrors' => $fieldErrors ?? [],
+            'formData' => $formData
         ]);
-        header('Location: /');
-        exit;
     }
 
-    // Utilisation de la ternaire directement dans le render
-    $this->render('login/index', ['fieldErrors' => $validationResult['errors'] ?? []]);
-}
-     **/
-
+    /**
+     * Gestion de l'inscription de l'utilisateur
+     */
     public function register(Request $request)
     {
         if (Session::has('user')) {
-            // Redirection si l'utilisateur est déjà connecté
             header('Location: /');
             exit;
         }
 
-        $fieldErrors = [];
         $formData = $request->allPost();
+        $fieldErrors = [];
+        $user = new User($formData); // On conserve l'objet User dès le début
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Vérification du token CSRF
             $formToken = $request->post('form_token');
             if (!$formToken || $formToken !== Session::get('form_token', '')) {
-                $fieldErrors['form_token'] = "Soumission de formulaire non autorisée.";
+                $fieldErrors['form_token'] = 'Soumission de formulaire non autorisée.';
             }
             Session::delete('form_token');
 
-            $user = new User($formData);
-            $fieldErrors = $this->validator->validateRegistration($user);
+            // Instancier et valider le formulaire
+            $validator = new ValidatorRegister($formData); // passer l'user object
+            $validator->validate();
+            $fieldErrors = $validator->getErrors();
 
-            if (empty($fieldErrors)) {
+            if ($validator->isValid()) {
                 try {
                     if ($this->userManager->registerUser($user)) {
-                        $this->render('user/register', ['success' => "Utilisateur enregistré avec succès."]);
+                        $this->render('user/register', ['success' => 'Utilisateur enregistré avec succès.']);
                         return;
                     }
-                    $fieldErrors['general'] = "Une erreur est survenue lors de l'enregistrement.";
+                    $fieldErrors['general'] = 'Une erreur est survenue lors de l\'enregistrement.';
                 } catch (\Exception $e) {
                     error_log($e->getMessage());
-                    $fieldErrors['general'] = "Erreur inattendue. Veuillez réessayer plus tard.";
+                    $fieldErrors['general'] = 'Erreur inattendue. Veuillez réessayer plus tard.';
                 }
             }
         }
@@ -131,9 +110,10 @@ class UserController extends Controller
         Session::set('form_token', $formToken);
 
         $this->render('user/register', [
-            'fieldErrors' => $fieldErrors,
+            'fieldErrors' => $fieldErrors ?? [],
             'formData' => $formData,
             'form_token' => $formToken,
+            'user' => $user, // On renvoie aussi l'objet User à la vue
         ]);
     }
 
@@ -146,12 +126,12 @@ class UserController extends Controller
 
         $user = Session::get('user');
         $postsPerPage = 5;
-        $currentPage = $request->get('page', 1);
+        $currentPage = (int) $request->get('page', 1);
         $offset = ($currentPage - 1) * $postsPerPage;
 
         $posts = $this->postManager->findPaginatedByUser($user['id'], $postsPerPage, $offset);
         $totalPosts = $this->postManager->countByUser($user['id']);
-        $totalPages = ceil($totalPosts / $postsPerPage);
+        $totalPages = (int) ceil($totalPosts / $postsPerPage);
 
         if ($currentPage > $totalPages && $totalPages > 0) {
             header("Location: /user/profile?page=$totalPages");
@@ -174,7 +154,6 @@ class UserController extends Controller
     public function logout()
     {
         if (!Session::has('user')) {
-            // Redirection si l'utilisateur n'est pas connecté
             header('Location: /user/login');
             exit;
         }

@@ -15,6 +15,7 @@
     <!-- Articles de l'utilisateur -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-center">Vos articles</h2>
+        <a href="/categories" class="btn btn-info">Gérer les catégories</a>
         <a href="/posts/create" class="btn btn-success">Créer un nouvel article</a>
     </div>
 
@@ -26,7 +27,11 @@
                         <div class="card-body">
                             <h5 class="card-title"><?= htmlspecialchars($post->getTitle()) ?></h5>
                             <p class="card-text"><?= htmlspecialchars(substr($post->getContent(), 0, 100)) ?>...</p>
-                            <a href="/posts/show/<?= $post->getId() ?>" class="btn btn-primary">Lire la suite</a>
+                            <a href="/posts/edit/<?= $post->getId() ?>" class="btn btn-warning">Modifier</a>
+                            <!-- Bouton Supprimer -->
+                            <form action="/posts/delete/<?= $post->getId() ?>" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer cet article ?');">Supprimer</button>
+                            </form>
                         </div>
                         <div class="card-footer text-muted">
                             <i class="bi bi-calendar"></i>
@@ -36,21 +41,6 @@
                 </div>
             <?php endforeach; ?>
         </div>
-
-        <!-- Pagination -->
-        <?php if ($totalPages > 1): ?>
-            <nav aria-label="Pagination des articles" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <li class="page-item <?= $i == $currentPage ? 'active' : '' ?>">
-                            <a class="page-link" href="/user/profile?page=<?= $i ?>" aria-label="Page <?= $i ?>">
-                                <?= $i ?>
-                            </a>
-                        </li>
-                    <?php endfor; ?>
-                </ul>
-            </nav>
-        <?php endif; ?>
     <?php else: ?>
         <div class="alert alert-info text-center mt-4">
             Vous n'avez encore écrit aucun article.

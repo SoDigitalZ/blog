@@ -27,28 +27,26 @@ class PostManager extends Manager
 
     public function create(Post $post): bool
     {
+        try {
+            $query = $this->requete("
+                INSERT INTO {$this->table} (user_id, title, chapo, content, image, category_id, created_at)
+                VALUES (:user_id, :title, :chapo, :content, :image, :category_id, NOW())
+            ", [
+                'user_id' => $post->getUserId(),
+                'title' => $post->getTitle(),
+                'chapo' => $post->getChapo(),
+                'content' => $post->getContent(),
+                'image' => $post->getImage(),
+                'category_id' => $post->getCategoryId(),
+            ]);
 
-        error_log("Post object before insertion: " . json_encode([
-            'user_id' => $post->getUserId(),
-            'title' => $post->getTitle(),
-            'chapo' => $post->getChapo(),
-            'content' => $post->getContent(),
-            'image' => $post->getImage(),
-        ]));
-        $query = $this->requete("
-            INSERT INTO {$this->table} (user_id, title, chapo, content, image, category_id, created_at)
-            VALUES (:user_id, :title, :chapo, :content, :image, :category_id, NOW())
-        ", [
-            'user_id' => $post->getUserId(),
-            'title' => $post->getTitle(),
-            'chapo' => $post->getChapo(),
-            'content' => $post->getContent(),
-            'image' => $post->getImage(), // Accepte une valeur NULL si aucune image n'est fournie
-            'category_id' => $post->getCategoryId(),
-        ]);
-
-        return $query->rowCount() > 0;
+            return $query->rowCount() > 0;
+        } catch (\PDOException $e) {
+            error_log('Erreur lors de la création de l\'article : ' . $e->getMessage());
+            return false;
+        }
     }
+
 
     public function update(Post $post): bool
     {

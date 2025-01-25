@@ -2,79 +2,36 @@
 
 namespace App\Core;
 
-use App\Core\Request;
+use App\Controllers\PostsController;
+use App\Controllers\UserController;
 
 class Main
 {
-    public function start()
+    public function start(): void
     {
-        // Récupère l'URL et supprime les paramètres éventuels
-        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-        // Supprime les '/' initiaux et finaux
-        $uri = trim($uri, '/');
-
-        // Découpe l'URI en segments
-        $segments = explode('/', $uri);
-
-        // Définit le contrôleur, l'action, et les paramètres
-        $controllerName = !empty($segments[0]) ? ucfirst($segments[0]) . 'Controller' : 'MainController';
-        $actionName = isset($segments[1]) ? $segments[1] : 'index';
-        $params = array_slice($segments, 2); // Les paramètres supplémentaires
-
-        // Namespace complet du contrôleur
-        $controllerClass = '\\App\\Controllers\\' . $controllerName;
-
-        // Instancie la classe Request
+        // Instancie les classes nécessaires
         $request = new Request();
+        $router = new Router();
 
-        // Vérifie si le contrôleur existe
-        if (class_exists($controllerClass)) {
-            $controller = new $controllerClass();
+        // Définit les routes
+        $router->get('/', [\App\Controllers\MainController::class, 'index']);
+        $router->get('/user/profile', [UserController::class, 'profile']);
+        $router->get('/posts', [PostsController::class, 'index']);
+        $router->get('/posts/show/{id}', [PostsController::class, 'show']);
+        $router->get('/posts/create', [\App\Controllers\PostsController::class, 'create']);
+        $router->post('/posts/create', [\App\Controllers\PostsController::class, 'create']);
+        $router->get('/posts/edit/{id}', [PostsController::class, 'edit']);
+        $router->post('/posts/edit/{id}', [PostsController::class, 'edit']);
+        $router->post('/posts/delete/{id}', [PostsController::class, 'delete']);
+        $router->get('/posts/show/{id}', [\App\Controllers\PostsController::class, 'show']);
+        $router->get('/categories', [\App\Controllers\CategoriesController::class, 'index']);
+        $router->get('/categories/create', [\App\Controllers\CategoriesController::class, 'create']);
+        $router->post('/categories/create', [\App\Controllers\CategoriesController::class, 'create']);
+        $router->get('/categories/edit/{id}', [\App\Controllers\CategoriesController::class, 'edit']);
+        $router->post('/categories/edit/{id}', [\App\Controllers\CategoriesController::class, 'edit']);
+        $router->get('/categories/delete/{id}', [\App\Controllers\CategoriesController::class, 'delete']);
 
-            // Vérifie si l'action existe dans le contrôleur
-            if (method_exists($controller, $actionName)) {
-                // Utilisation de Reflection pour gérer les paramètres
-                $reflectionMethod = new \ReflectionMethod($controller, $actionName);
-                $methodParameters = $reflectionMethod->getParameters();
-
-                // Prépare les arguments à passer à la méthode
-                $arguments = [];
-
-                foreach ($methodParameters as $parameter) {
-                    $parameterType = $parameter->getType()?->getName();
-
-                    // Si le paramètre est de type Request, on passe l'objet Request
-                    if ($parameterType === Request::class) {
-                        $arguments[] = $request;
-                    } else {
-                        // Sinon, on prend le prochain paramètre de l'URL
-                        $arguments[] = array_shift($params);
-                    }
-                }
-
-                // Appelle l'action avec les arguments préparés
-                $reflectionMethod->invokeArgs($controller, $arguments);
-            } else {
-                // Gère l'erreur d'action non trouvée
-                $this->notFound("Action '$actionName' non trouvée dans le contrôleur '$controllerName'.");
-            }
-        } else {
-            // Gère l'erreur de contrôleur non trouvé
-            $this->notFound("Contrôleur '$controllerName' non trouvé.");
-        }
-    }
-
-    /**
-     * Affiche une page d'erreur 404
-     *
-     * @param string $message
-     */
-    private function notFound(string $message)
-    {
-        http_response_code(404);
-        echo "<h1>404 Not Found</h1>";
-        echo "<p>$message</p>";
-        exit();
+        // Lance le routeur
+        $router->dispatch($request);
     }
 }

@@ -6,11 +6,15 @@ class Request
 {
     private array $get;
     private array $post;
+    private string $method;
+    private string $uri;
 
     public function __construct()
     {
         $this->get = $_GET;
         $this->post = $_POST;
+        $this->method = $_SERVER['REQUEST_METHOD'];
+        $this->uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     }
 
     /**
@@ -59,5 +63,21 @@ class Request
     public function allPost(): array
     {
         return $this->post;
+    }
+
+    /**
+     * Récupère la méthode HTTP de la requête.
+     */
+    public function getMethod(): string
+    {
+        return $this->method;
+    }
+
+    /**
+     * Récupère le chemin de l'URI sans les paramètres.
+     */
+    public function getPath(): string
+    {
+        return $this->uri;
     }
 }

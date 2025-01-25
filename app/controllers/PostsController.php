@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Models\PostManager;
 use App\Models\Post;
+use App\Core\Request;
+use App\Core\Session;
 
 class PostsController extends Controller
 {
@@ -28,9 +30,11 @@ class PostsController extends Controller
         ]);
     }
 
-
-    public function show(int $id)
+    public function show(Request $request)
     {
+        // Extraction de l'ID depuis l'URI
+        $id = (int) basename($request->getPath()); // Extrait la dernière partie de l'URL (ex : /posts/show/3 -> 3)
+
         $postManager = new PostManager();
         $post = $postManager->find($id);
 
@@ -44,43 +48,55 @@ class PostsController extends Controller
         $this->render('posts/show', compact('post'));
     }
 
+
     public function create()
     {
         $errors = [];
         $formData = $_POST;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Vérifiez que l'utilisateur est connecté
-            if (!isset($_SESSION['user'])) {
+            // Vérification de l'utilisateur connecté
+            if (!Session::has('user')) {
                 header('Location: /user/login');
-                exit;
+                exit();
             }
 
-            // Récupérez l'utilisateur connecté
-            $userId = $_SESSION['user']['id'];
+            // Récupération de l'utilisateur connecté
+            $userId = Session::get('user')['id'];
 
             // Validation des champs requis
             if (empty($formData['title'])) {
                 $errors['title'] = "Le titre est obligatoire.";
             }
-            if (empty($formData['chapo'])) {
-                $errors['chapo'] = "Le chapeau est obligatoire.";
-            }
             if (empty($formData['content'])) {
                 $errors['content'] = "Le contenu est obligatoire.";
             }
 
+            // Gestion de l'upload d'image
+            if ($_FILES['image']['error'] === 0)
+                if (!empty($_FILES['image']['name'])) {
+                    $uploadDir = __DIR__ . '/../../public/picture/post_image/';
+                    $uploadFile = $uploadDir . basename($_FILES['image']['name']);
+
+                    // Vérifier si le fichier est une image valide MIME + bonne extension + générer nom de fichier unique (en partant de uniq id)
+                    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                    if (!in_array($_FILES['image']['type'], $allowedTypes)) {
+                        $errors['image'] = "Seuls les fichiers JPEG, PNG et GIF sont autorisés.";
+                    } elseif (!move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+                        $errors['image'] = "Une erreur est survenue lors du téléchargement de l'image.";
+                    } else {
+                        $formData['image'] = '/picture/post_image/' . basename($_FILES['image']['name']);
+                    }
+                }
+
             if (empty($errors)) {
-                // Ajoutez l'ID utilisateur connecté aux données
                 $formData['user_id'] = $userId;
 
-                // Hydratez l'objet Post avec les données
+                // Création de l'article
                 $post = new Post($formData);
-
-                // Enregistrez l'article
                 $postManager = new PostManager();
                 if ($postManager->create($post)) {
-                    header('Location: /posts');
+                    header('Location: /user/profile');
                     exit();
                 } else {
                     $errors['general'] = "Une erreur est survenue lors de l'enregistrement de l'article.";
@@ -88,7 +104,7 @@ class PostsController extends Controller
             }
         }
 
-        // Transmettez les erreurs et les données à la vue
+        // Transmettre les erreurs et données à la vue
         $this->render('posts/create', [
             'errors' => $errors,
             'formData' => $formData,
@@ -96,7 +112,7 @@ class PostsController extends Controller
     }
 
 
-    public function edit(int $id)
+    public function edit(Request $request, int $id)
     {
         $postManager = new PostManager();
         $post = $postManager->find($id);
@@ -109,41 +125,60 @@ class PostsController extends Controller
         }
 
         $errors = [];
-        $formData = $_POST;
+        $formData = array_map(function ($value) {
+            return is_array($value) ? '' : trim($value);
+        }, $request->allPost());
+        // Récupère les données POST
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (empty($formData['title'])) {
-                $errors['title'] = "Le titre est obligatoire.";
-            }
-            if (empty($formData['chapo'])) {
-                $errors['chapo'] = "Le chapeau est obligatoire.";
-            }
-            if (empty($formData['content'])) {
-                $errors['content'] = "Le contenu est obligatoire.";
+            // Gestion de l'upload d'une nouvelle image
+            if (!empty($_FILES['image']['name'])) {
+                $uploadDir = __DIR__ . '/../../public/picture/post_image/';
+                $uploadFile = $uploadDir . basename($_FILES['image']['name']);
+
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                if (!in_array($_FILES['image']['type'], $allowedTypes)) {
+                    $errors['image'] = "Seuls les fichiers JPEG, PNG et GIF sont autorisés.";
+                } elseif (!move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+                    $errors['image'] = "Une erreur est survenue lors du téléchargement de l'image.";
+                } else {
+                    $formData['image'] = '/picture/post_image/' . basename($_FILES['image']['name']);
+                }
+            } else {
+                // Si aucune nouvelle image n'est uploadée, conserver l'image actuelle
+                $formData['image'] = $post->getImage();
             }
 
-            if (empty($errors)) {
+            // Validation avec ValidatorPost (facultatif)
+            $validator = new ValidatorPost($formData);
+            $validator->validate();
+
+            if ($validator->isValid()) {
                 $post->setTitle($formData['title'])
                     ->setChapo($formData['chapo'])
-                    ->setContent($formData['content']);
+                    ->setContent($formData['content'])
+                    ->setImage($formData['image'])
+                    ->setCategoryId($formData['category_id']);
 
                 if ($postManager->update($post)) {
-                    header('Location: /posts');
+                    header('Location: /user/profile');
                     exit();
                 } else {
                     $errors['general'] = "Une erreur est survenue lors de la mise à jour de l'article.";
                 }
+            } else {
+                $errors = $validator->getErrors();
             }
         }
 
         $this->render('posts/edit', [
             'post' => $post,
             'errors' => $errors,
-            'formData' => $formData
+            'formData' => $formData,
         ]);
     }
 
-    public function delete(int $id)
+    public function delete(Request $request, int $id)
     {
         $postManager = new PostManager();
         $post = $postManager->find($id);

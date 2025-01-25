@@ -14,6 +14,9 @@ class Post
     protected $created_at;
     protected $update_at;
 
+    // Chemin relatif de l'image par défaut
+    protected const DEFAULT_IMAGE = '/picture/post_image/no_image.png';
+
     public function __construct(array $data = [])
     {
         if (!empty($data)) {
@@ -98,15 +101,15 @@ class Post
         return $this;
     }
 
-    public function setImage(?string $image): self
+    public function getImage(): string
     {
-        $this->image = $image ?: '/images/default.jpg'; // Définit une image par défaut si $image est vide ou null
-        return $this;
+        return $this->image ?: self::DEFAULT_IMAGE;
     }
 
-    public function getImage(): ?string
+    public function setImage(?string $image): self
     {
-        return $this->image;
+        $this->image = $image;
+        return $this;
     }
 
     public function getCategoryId(): ?int
